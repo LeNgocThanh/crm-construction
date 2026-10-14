@@ -1,0 +1,25 @@
+# cloudflare/config.yml
+# Cloudflare Tunnel config cho CRM Construction Bot
+# 
+# HƯỚNG DẪN SETUP:
+# 1. Cài cloudflared: winget install Cloudflare.cloudflared
+# 2. Đăng nhập:       cloudflared tunnel login
+# 3. Tạo tunnel:      cloudflared tunnel create crm-construction
+# 4. Copy tunnel ID vào file này (thay YOUR_TUNNEL_ID)
+# 5. Chạy:            cloudflared tunnel --config cloudflare/config.yml run
+#
+# Sau khi chạy thành công, bạn sẽ có URL dạng:
+#   https://crm-construction.your-subdomain.cfargotunnel.com
+# Hoặc nếu có domain riêng:
+#   https://crm.yourdomain.com
+
+tunnel: YOUR_TUNNEL_ID
+credentials-file: C:\Users\YOUR_USERNAME\.cloudflared\YOUR_TUNNEL_ID.json
+
+ingress:
+  # Next.js app
+  - hostname: crm.yourdomain.com    # thay bằng domain của bạn (hoặc xóa nếu dùng cfargotunnel.com)
+    service: http://localhost:3000
+
+  # Catch-all (bắt buộc phải có)
+  - service: http_status:404

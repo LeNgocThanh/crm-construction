@@ -1,0 +1,3235 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// â”€â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique
+  password_hash String
+  full_name     String?
+  email         String?  @unique
+  phone         String?
+  avatar_url    String?
+  employee_code String?
+  job_title     String?
+  role          String   @default("sales") // admin | manager | sales
+  is_active     Boolean  @default(true)
+  last_login_at DateTime?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  contact_logs                         ContactLog[]
+  confirmedProjects                    ConstructionProject[]        @relation("ProjectConfirmer")
+  ragEntries                           RagEntry[]
+  assigned_customers                   Customer[]                   @relation("CustomerAssignee")
+  timeline_events                      CustomerTimeline[]           @relation("TimelineCreator")
+  care_activities                      CustomerCareActivity[]       @relation("CareActivityCreator")
+  owned_care_activities                CustomerCareActivity[]       @relation("CareActivityOwner")
+  completed_care_activities            CustomerCareActivity[]       @relation("CareActivityCompleter")
+  created_requirement_snapshots        ProjectRequirementSnapshot[] @relation("RequirementSnapshotCreator")
+  approved_requirement_snapshots       ProjectRequirementSnapshot[] @relation("RequirementSnapshotApprover")
+  estimate_dispatches                  CustomerEstimateDispatch[]   @relation("EstimateDispatchSender")
+  group_memberships                    UserGroupMembership[]
+  account_type_memberships             UserAccountTypeMembership[]
+  role_memberships                     UserRoleMembership[]
+  work_suggestion_recipients           WorkSuggestionRecipient[]
+  notifications                        UserNotification[]
+  action_timeline_events               ActionTimelineEvent[]
+  project_timeline_events              ProjectTimelineEvent[]
+  held_assets                          Asset[]                      @relation("AssetCurrentHolder")
+  asset_assignments                    AssetAssignment[]            @relation("AssetAssignedUser")
+  asset_assigned_by                    AssetAssignment[]            @relation("AssetAssignedBy")
+  asset_lifecycle_events               AssetLifecycleEvent[]
+  uploaded_project_documents           ProjectDocument[]            @relation("ProjectDocumentUploader")
+  created_project_milestones           ProjectMilestone[]           @relation("ProjectMilestoneCreator")
+  created_project_payment_plans        ProjectPaymentPlan[]         @relation("ProjectPaymentPlanCreator")
+  created_project_payments             ProjectPayment[]             @relation("ProjectPaymentCreator")
+  created_project_resource_plans       ProjectResourcePlan[]        @relation("ProjectResourcePlanCreator")
+  created_project_resource_items       ProjectResourcePlanItem[]    @relation("ProjectResourcePlanItemCreator")
+  created_project_diary_entries        ProjectDiaryEntry[]          @relation("ProjectDiaryEntryCreator")
+  reported_project_site_issues         ProjectSiteIssue[]           @relation("ProjectSiteIssueReporter")
+  assigned_project_site_issues         ProjectSiteIssue[]           @relation("ProjectSiteIssueAssignee")
+  verified_project_site_issues         ProjectSiteIssue[]           @relation("ProjectSiteIssueVerifier")
+  cancelled_project_site_issues        ProjectSiteIssue[]           @relation("ProjectSiteIssueCanceller")
+  project_site_issue_events            ProjectSiteIssueEvent[]      @relation("ProjectSiteIssueEventActor")
+  created_project_cashflow_snapshots   ProjectCashflowSnapshot[]    @relation("ProjectCashflowSnapshotCreator")
+  uploaded_files                       FileRecord[]                 @relation("FileRecordUploader")
+  created_project_direct_purchases     ProjectDirectPurchase[]      @relation("ProjectDirectPurchaseCreator")
+  confirmed_project_direct_purchases   ProjectDirectPurchase[]      @relation("ProjectDirectPurchaseConfirmer")
+  project_material_ledger_entries      ProjectMaterialLedger[]      @relation("ProjectMaterialLedgerCreator")
+  created_project_material_allocations ProjectMaterialAllocation[]  @relation("ProjectMaterialAllocationCreator")
+  created_labor_trades                 LaborTrade[]                 @relation("LaborTradeCreator")
+  created_labor_crews                  LaborCrew[]                  @relation("LaborCrewCreator")
+  created_labor_skill_levels           LaborSkillLevel[]            @relation("LaborSkillLevelCreator")
+  created_labor_workers                LaborWorker[]                @relation("LaborWorkerCreator")
+  created_labor_engagements            ProjectLaborEngagement[]     @relation("LaborProjectEngagementCreator")
+  created_labor_attendances            ProjectLaborAttendance[]     @relation("ProjectLaborAttendanceCreator")
+  confirmed_labor_attendances          ProjectLaborAttendance[]     @relation("ProjectLaborAttendanceConfirmer")
+  created_labor_rosters                ProjectLaborRoster[]         @relation("ProjectLaborRosterCreator")
+  created_labor_payment_batches        ProjectLaborPaymentBatch[]   @relation("ProjectLaborPaymentBatchCreator")
+  approved_labor_payment_batches       ProjectLaborPaymentBatch[]   @relation("ProjectLaborPaymentBatchApprover")
+  paid_labor_payment_batches           ProjectLaborPaymentBatch[]   @relation("ProjectLaborPaymentBatchPayer")
+  cancelled_labor_payment_batches      ProjectLaborPaymentBatch[]   @relation("ProjectLaborPaymentBatchCanceller")
+  created_labor_payments               ProjectLaborPayment[]        @relation("ProjectLaborPaymentCreator")
+  owned_projects                       ConstructionProject[]        @relation("ProjectOwner")
+  default_owned_projects               ConstructionProject[]        @relation("ProjectDefaultOwner")
+  resource_access_grants               ResourceAccessGrant[]        @relation("ResourceAccessGrantUser")
+  granted_resource_access_grants       ResourceAccessGrant[]        @relation("ResourceAccessGrantGranter")
+
+  @@map("users")
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  group_key   String   @unique
+  group_name  String
+  description String?  @db.Text
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  memberships UserGroupMembership[]
+
+  @@index([is_active, group_name])
+  @@map("groups")
+}
+
+model AccountType {
+  id                String                      @id @default(uuid())
+  account_type_key  String                      @unique
+  account_type_name String
+  description       String?                     @db.Text
+  is_active         Boolean                     @default(true)
+  created_at        DateTime                    @default(now())
+  updated_at        DateTime                    @updatedAt
+
+  memberships       UserAccountTypeMembership[]
+
+  @@index([is_active, account_type_name])
+  @@map("account_types")
+}
+
+model UserGroupMembership {
+  id            String   @id @default(uuid())
+  user_id       String
+  group_id      String
+  is_primary    Boolean  @default(false)
+  role_in_group String? // leader | member | support
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [group_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, group_id])
+  @@index([group_id, is_primary])
+  @@index([user_id, is_primary])
+  @@map("user_group_memberships")
+}
+
+model UserAccountTypeMembership {
+  id              String   @id @default(uuid())
+  user_id         String
+  account_type_id String
+  is_primary      Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user         User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  account_type AccountType @relation(fields: [account_type_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, account_type_id])
+  @@index([account_type_id, is_primary])
+  @@index([user_id, is_primary])
+  @@map("user_account_type_memberships")
+}
+
+model AccessModule {
+  id          String   @id @default(uuid())
+  module_key  String   @unique
+  module_name String
+  description String?  @db.Text
+  is_active   Boolean  @default(true)
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  resources   AccessResource[]
+  permissions AccessPermission[]
+
+  @@index([is_active, sort_order])
+  @@map("access_modules")
+}
+
+model AccessResource {
+  id            String   @id @default(uuid())
+  resource_key  String   @unique
+  resource_name String
+  module_id     String
+  description   String?  @db.Text
+  is_active     Boolean  @default(true)
+  sort_order    Int      @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  module      AccessModule      @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  permissions AccessPermission[]
+
+  @@index([module_id, is_active, sort_order])
+  @@map("access_resources")
+}
+
+model AccessPermission {
+  id              String   @id @default(uuid())
+  permission_key  String   @unique
+  permission_name String
+  module_id       String
+  resource_id     String?
+  action_key      String
+  description     String?  @db.Text
+  is_active       Boolean  @default(true)
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  module           AccessModule             @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  resource         AccessResource?          @relation(fields: [resource_id], references: [id], onDelete: SetNull)
+  role_permissions AccessRolePermission[]
+
+  @@index([module_id, is_active, sort_order])
+  @@index([resource_id, is_active, sort_order])
+  @@index([action_key, is_active])
+  @@map("access_permissions")
+}
+
+model AccessRole {
+  id               String   @id @default(uuid())
+  role_key         String   @unique
+  role_name        String
+  description      String?  @db.Text
+  is_system        Boolean  @default(true)
+  is_active        Boolean  @default(true)
+  sort_order       Int      @default(0)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  role_permissions AccessRolePermission[]
+  user_memberships UserRoleMembership[]
+
+  @@index([is_active, sort_order])
+  @@map("access_roles")
+}
+
+model AccessRolePermission {
+  id            String   @id @default(uuid())
+  role_id       String
+  permission_id String
+  created_at    DateTime @default(now())
+
+  role       AccessRole       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission AccessPermission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, permission_id])
+  @@index([permission_id])
+  @@map("access_role_permissions")
+}
+
+model UserRoleMembership {
+  id         String   @id @default(uuid())
+  user_id    String
+  role_id    String
+  is_primary Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role AccessRole @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, role_id])
+  @@index([role_id, is_primary])
+  @@index([user_id, is_primary])
+  @@map("user_role_memberships")
+}
+
+model ResourceAccessGrant {
+  id            String   @id @default(uuid())
+  resource_type String
+  resource_id   String
+  user_id       String
+  access_level  String? // viewer | editor | approver | manager
+  can_read      Boolean  @default(false)
+  can_write     Boolean  @default(false)
+  can_approve   Boolean  @default(false)
+  can_manage    Boolean  @default(false)
+  granted_by    String?
+  granted_at    DateTime @default(now())
+  expires_at    DateTime?
+  is_active     Boolean  @default(true)
+  note          String?  @db.Text
+  metadata_json Json?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  user    User  @relation("ResourceAccessGrantUser", fields: [user_id], references: [id], onDelete: Cascade)
+  granter User? @relation("ResourceAccessGrantGranter", fields: [granted_by], references: [id], onDelete: SetNull)
+
+  @@unique([resource_type, resource_id, user_id])
+  @@index([user_id, is_active])
+  @@index([resource_type, resource_id, is_active])
+  @@index([granted_by, granted_at])
+  @@map("resource_access_grants")
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  parent_id   String?
+  org_key     String   @unique
+  org_name    String
+  org_type    String?
+  region_code String?
+  address     String?
+  legal_name  String?
+  tax_code    String?
+  description String?  @db.Text
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  parent      Organization?  @relation("OrganizationHierarchy", fields: [parent_id], references: [id], onDelete: SetNull)
+  children    Organization[] @relation("OrganizationHierarchy")
+  departments Department[]
+
+  @@index([is_active, org_name])
+  @@index([parent_id])
+  @@index([region_code, is_active])
+  @@map("organizations")
+}
+
+model Department {
+  id              String   @id @default(uuid())
+  organization_id String
+  parent_id       String?
+  dept_key        String
+  dept_name       String
+  description     String?  @db.Text
+  sort_order      Int      @default(0)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  parent       Department?  @relation("DepartmentHierarchy", fields: [parent_id], references: [id], onDelete: SetNull)
+  children     Department[] @relation("DepartmentHierarchy")
+
+  @@unique([organization_id, dept_key])
+  @@index([organization_id, is_active, sort_order])
+  @@index([parent_id])
+  @@map("departments")
+}
+
+// â”€â”€â”€ Customers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+model Customer {
+  id             String  @id @default(uuid())
+  phone_number   String? @unique
+  full_name      String?
+  type           String  @default("unverified") // unverified | verified
+  total_contacts Int     @default(0)
+
+  // Pipeline status
+  // Má»›i | Äang tÃ¬m hiá»ƒu | Háº¹n gáº·p | Äang thÆ°Æ¡ng tháº£o
+  // Chá» kÃ½ HÄ | ÄÃ£ kÃ½ HÄ | Äang thi cÃ´ng
+  // HoÃ n cÃ´ng | Báº£o hÃ nh | HoÃ n táº¥t | Táº¡m ngÆ°ng | Tá»« chá»‘i
+  status String @default("Má»›i")
+
+  // Nhu cáº§u xÃ¢y dá»±ng
+  address    String?
+  house_type String?
+  floors     Int?
+  floor_area Float?
+  budget_min BigInt?
+  budget_max BigInt?
+
+  // Tiá»m nÄƒng
+  potential_score Int?
+  potential_level String?
+  next_action     String? @db.Text
+
+  // Nguá»“n khÃ¡ch
+  source         String?
+  referrer_name  String?
+  referrer_phone String?
+
+  // Social identifiers â€” auto-fill tá»« conversation
+  telegram_id        String?
+  telegram_username  String?
+  zalo_id            String?
+  zalo_username      String?
+  messenger_id       String?
+  messenger_username String?
+
+  // PhÃ¢n cÃ´ng
+  assigned_to String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  contact_logs            ContactLog[]
+  projects                ConstructionProject[]
+  timeline                CustomerTimeline[]
+  care_activities         CustomerCareActivity[]
+  estimate_dispatches     CustomerEstimateDispatch[]
+  requirement_snapshots   ProjectRequirementSnapshot[]
+  assemblies              ProjectAssembly[]
+  analysis_runs           AnalysisRun[]
+  analysis_facts          AnalysisFact[]
+  estimation_quotes       EstimationQuote[]
+  work_suggestions        WorkSuggestion[]
+  action_timeline_events  ActionTimelineEvent[]
+  project_timeline_events ProjectTimelineEvent[]
+  assets                  Asset[]                      @relation("AssetCurrentCustomer")
+  asset_assignments       AssetAssignment[]
+  assignee                User?                        @relation("CustomerAssignee", fields: [assigned_to], references: [id], onDelete: SetNull)
+
+  @@map("customers")
+}
+
+// â”€â”€â”€ Contact Logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+model ContactLog {
+  id                String   @id @default(uuid())
+  customer_id       String
+  sales_id          String
+  contact_date      DateTime @default(now())
+  audio_file_path   String?
+  transcription_raw String?  @db.Text
+  ai_summary        String?  @db.Text
+  ai_sentiment      String? // TÃ­ch cá»±c | Trung láº­p | Gay gáº¯t
+  next_action       String?  @db.Text
+  notes             String?  @db.Text
+  // Nguá»“n â€” call hoáº·c chat
+  source            String   @default("call") // call | telegram | zalo | messenger
+  conversation_id   String? // link sang Conversation náº¿u source = chat
+
+  // BÃ³c tÃ¡ch AI per-log
+  ext_full_name  String?
+  ext_address    String?
+  ext_house_type String?
+  ext_floors     Int?
+  ext_floor_area Float?
+  ext_budget     BigInt?
+  ext_notes      String? @db.Text
+
+  // Tiá»m nÄƒng (tá»« AI phÃ¢n tÃ­ch)
+  potential_score Int?
+  potential_level String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  customer      Customer      @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  sales         User          @relation(fields: [sales_id], references: [id])
+  conversation  Conversation? @relation(fields: [conversation_id], references: [id], onDelete: SetNull)
+  analysis_runs AnalysisRun[]
+
+  @@map("contact_logs")
+}
+
+// â”€â”€â”€ Construction Projects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+model ConstructionProject {
+  id                       String    @id @default(uuid())
+  customer_id              String
+  // â”€â”€ ThÃ´ng tin bÃ³c tÃ¡ch / ká»¹ thuáº­t â”€â”€
+  address                  String?
+  house_type               String? // NhÃ  phá»‘ | Biá»‡t thá»± | NhÃ  cáº¥p 4 | Chung cÆ° | KhÃ¡c
+  floors                   Int?
+  floor_area               Float?
+  estimated_budget         BigInt? // NgÃ¢n sÃ¡ch Æ°á»›c tÃ­nh tá»« bÃ³c tÃ¡ch
+  notes                    String?   @db.Text
+  // â”€â”€ Tráº¡ng thÃ¡i dá»± Ã¡n â”€â”€
+  status                   String    @default("draft")
+  // draft: tá»•ng há»£p tá»« bÃ³c tÃ¡ch, chÆ°a chá»‘t
+  // confirmed: Ä‘Ã£ chá»‘t, dá»± Ã¡n chÃ­nh thá»©c
+  // in_progress: Ä‘ang thi cÃ´ng
+  // completed: hoÃ n thÃ nh
+  // paused: táº¡m ngÆ°ng
+  // cancelled: há»§y
+  stage                    String?
+  // thiáº¿t_káº¿ | xin_phÃ©p | mÃ³ng | thÃ´ | hoÃ n_thiá»‡n | bÃ n_giao
+  // â”€â”€ ThÃ´ng tin há»£p Ä‘á»“ng (chá»‰ cÃ³ khi confirmed) â”€â”€
+  contract_value           BigInt? // GiÃ¡ trá»‹ há»£p Ä‘á»“ng thá»±c táº¿
+  budget_baseline          BigInt? // ngan sach goc
+  budget_current           BigInt? // ngan sach dieu chinh hien tai
+  budget_allocated         BigInt? // ngan sach da phan bo
+  cost_committed           BigInt? // da cam ket mua/dat
+  cost_actual              BigInt? // chi phi phat sinh thuc
+  cash_on_hand             BigInt? // so du tien hien co cho du an
+  receivable_planned_30d   BigInt? // du kien thu 30 ngay
+  payable_planned_30d      BigInt? // du kien chi 30 ngay
+  progress_planned_percent Float? // % ke hoach hien tai
+  progress_actual_percent  Float? // % thuc te hien tai
+  delay_days               Int? // so ngay tre (co the tinh tu milestone)
+  risk_level               String? // low | medium | high | critical
+  start_date               DateTime?
+  expected_end_date        DateTime?
+  actual_end_date          DateTime?
+  confirmed_at             DateTime?
+  confirmed_by             String? // user_id
+  owner_id                 String?
+  default_owner_id         String?
+  active_material_plan_id  String?
+  active_labor_plan_id     String?
+  // â”€â”€ TÃªn dá»± Ã¡n â”€â”€
+  project_name             String? // TÃªn hiá»ƒn thá»‹, máº·c Ä‘á»‹nh = "NhÃ  [tÃªn KH]"
+  // â”€â”€ Nguá»“n dá»¯ liá»‡u â”€â”€
+  source                   String    @default("manual")
+  // manual | ai_extraction | ai_merge
+  extraction_quality       Int? // 0-100, Ä‘á»™ tin cáº­y dá»¯ liá»‡u bÃ³c tÃ¡ch
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
+
+  customer                Customer                     @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  confirmer               User?                        @relation("ProjectConfirmer", fields: [confirmed_by], references: [id], onDelete: SetNull)
+  owner                   User?                        @relation("ProjectOwner", fields: [owner_id], references: [id], onDelete: SetNull)
+  default_owner           User?                        @relation("ProjectDefaultOwner", fields: [default_owner_id], references: [id], onDelete: SetNull)
+  active_material_plan    ProjectResourcePlan?         @relation("ProjectActiveMaterialPlan", fields: [active_material_plan_id], references: [id], onDelete: SetNull)
+  active_labor_plan       ProjectResourcePlan?         @relation("ProjectActiveLaborPlan", fields: [active_labor_plan_id], references: [id], onDelete: SetNull)
+  requirement_snapshots   ProjectRequirementSnapshot[] @relation("RequirementSnapshotConvertedProject")
+  documents               ProjectDocument[]
+  milestones              ProjectMilestone[]
+  estimate_links          ProjectEstimateLink[]
+  payment_plans           ProjectPaymentPlan[]
+  payments                ProjectPayment[]
+  timeline_events         ProjectTimelineEvent[]
+  diary_entries           ProjectDiaryEntry[]
+  site_issues             ProjectSiteIssue[]
+  resource_plans          ProjectResourcePlan[]
+  resource_items          ProjectResourcePlanItem[]
+  cashflow_snapshots      ProjectCashflowSnapshot[]
+  direct_purchases        ProjectDirectPurchase[]
+  material_allocations    ProjectMaterialAllocation[]
+  direct_purchase_items   ProjectDirectPurchaseItem[]
+  material_ledger_entries ProjectMaterialLedger[]
+  labor_engagements       ProjectLaborEngagement[]
+  labor_attendances       ProjectLaborAttendance[]
+  labor_roster_entries    ProjectLaborRoster[]
+  labor_payment_batches   ProjectLaborPaymentBatch[]
+  labor_payments          ProjectLaborPayment[]
+  assets                  Asset[]                      @relation("AssetCurrentProject")
+  asset_assignments       AssetAssignment[]
+
+  @@map("construction_projects")
+}
+
+model ProjectCashflowSnapshot {
+  id                       String   @id @default(uuid())
+  project_id               String
+  snapshot_date            DateTime @default(now())
+  snapshot_type            String   @default("month_end") // month_end | event | milestone
+  period_key               String? // YYYY-MM when month_end
+  milestone_id             String?
+  budget_current           BigInt?
+  budget_allocated         BigInt?
+  cost_committed           BigInt?
+  cost_actual              BigInt?
+  cash_on_hand             BigInt?
+  receivable_planned_30d   BigInt?
+  payable_planned_30d      BigInt?
+  progress_planned_percent Float?
+  progress_actual_percent  Float?
+  delay_days               Int?
+  risk_level               String?
+  demand_30d               BigInt?
+  supply_30d               BigInt?
+  gap_30d                  BigInt?
+  warning_level            String?
+  note                     String?  @db.Text
+  metadata_json            Json?
+  created_by               String?
+  created_at               DateTime @default(now())
+
+  project   ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  milestone ProjectMilestone?   @relation(fields: [milestone_id], references: [id], onDelete: SetNull)
+  creator   User?               @relation("ProjectCashflowSnapshotCreator", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([project_id, snapshot_date])
+  @@index([project_id, snapshot_type, period_key])
+  @@index([milestone_id])
+  @@map("project_cashflow_snapshots")
+}
+
+model ProjectDiaryEntry {
+  id                     String   @id @default(uuid())
+  project_id             String
+  entry_date             DateTime
+  shift_type             String? // morning | afternoon | full_day | night
+  title                  String
+  summary                String?  @db.Text
+  manpower_summary       String?  @db.Text
+  equipment_summary      String?  @db.Text
+  material_in_summary    String?  @db.Text
+  material_out_summary   String?  @db.Text
+  work_scope             String? // mong | tho | hoan_thien | mep | khac
+  weather                String?
+  progress_percent_day   Float?
+  progress_percent_total Float?
+  quality_status         String   @default("ok") // ok | issue | blocked
+  safety_status          String   @default("ok") // ok | warning | incident
+  next_plan              String?  @db.Text
+  is_investor_visible    Boolean  @default(true)
+  metadata_json          Json?
+  created_by             String?
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+
+  project ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  creator User?               @relation("ProjectDiaryEntryCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  media   ProjectDiaryMedia[]
+  events  ProjectDiaryEvent[]
+  attendances ProjectLaborAttendance[]
+  site_issues ProjectSiteIssue[]
+
+  @@index([project_id, entry_date])
+  @@index([project_id, is_investor_visible, entry_date])
+  @@map("project_diary_entries")
+}
+
+model ProjectDiaryMedia {
+  id              String    @id @default(uuid())
+  diary_entry_id  String
+  file_record_id  String?
+  file_url        String
+  file_type       String? // image | video | file
+  caption         String?
+  taken_at        DateTime?
+  is_before_after Boolean   @default(false)
+  pair_key        String?
+  sort_order      Int       @default(0)
+  metadata_json   Json?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  diary_entry ProjectDiaryEntry @relation(fields: [diary_entry_id], references: [id], onDelete: Cascade)
+  file_record FileRecord?       @relation("ProjectDiaryMediaFileRecord", fields: [file_record_id], references: [id], onDelete: SetNull)
+
+  @@index([diary_entry_id, sort_order])
+  @@index([file_record_id])
+  @@map("project_diary_media")
+}
+
+model ProjectSiteIssue {
+  id                    String   @id @default(uuid())
+  project_id            String
+  source_diary_entry_id String?
+  subcontractor_id      String?
+  source_type           String   @default("manual")
+  issue_type            String
+  workflow_type         String
+  issue_code            String   @unique
+  title                 String
+  detail                String?  @db.Text
+  severity              String   @default("medium")
+  status                String   @default("open")
+  location_text         String?
+  floor_label           String?
+  area_label            String?
+  plan_file_record_id   String?
+  marker_json           Json?
+  reported_by           String?
+  assigned_to           String?
+  due_at                DateTime?
+  fixed_at              DateTime?
+  verified_at           DateTime?
+  verified_by           String?
+  cancelled_at          DateTime?
+  cancelled_by          String?
+  metadata_json         Json?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  project            ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  source_diary_entry ProjectDiaryEntry?  @relation(fields: [source_diary_entry_id], references: [id], onDelete: SetNull)
+  plan_file_record   FileRecord?         @relation("ProjectSiteIssuePlanFileRecord", fields: [plan_file_record_id], references: [id], onDelete: SetNull)
+  subcontractor      Supplier?           @relation("ProjectSiteIssueSubcontractor", fields: [subcontractor_id], references: [id], onDelete: SetNull)
+  reporter           User?               @relation("ProjectSiteIssueReporter", fields: [reported_by], references: [id], onDelete: SetNull)
+  assignee           User?               @relation("ProjectSiteIssueAssignee", fields: [assigned_to], references: [id], onDelete: SetNull)
+  verifier           User?               @relation("ProjectSiteIssueVerifier", fields: [verified_by], references: [id], onDelete: SetNull)
+  canceller          User?               @relation("ProjectSiteIssueCanceller", fields: [cancelled_by], references: [id], onDelete: SetNull)
+  media              ProjectSiteIssueMedia[]
+  events             ProjectSiteIssueEvent[]
+
+  @@index([project_id, status, due_at])
+  @@index([project_id, issue_type, status])
+  @@index([project_id, source_diary_entry_id])
+  @@index([assigned_to, status, due_at])
+  @@index([subcontractor_id, status, due_at])
+  @@index([project_id, created_at])
+  @@map("project_site_issues")
+}
+
+model ProjectSiteIssueMedia {
+  id             String   @id @default(uuid())
+  issue_id       String
+  file_record_id String?
+  file_url       String
+  file_type      String?
+  media_role     String   @default("other")
+  caption        String?
+  sort_order     Int      @default(0)
+  metadata_json  Json?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  issue       ProjectSiteIssue @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+  file_record FileRecord?      @relation("ProjectSiteIssueMediaFileRecord", fields: [file_record_id], references: [id], onDelete: SetNull)
+
+  @@index([issue_id, sort_order])
+  @@index([file_record_id])
+  @@map("project_site_issue_media")
+}
+
+model ProjectSiteIssueEvent {
+  id            String   @id @default(uuid())
+  issue_id      String
+  event_key     String
+  title         String
+  detail        String?  @db.Text
+  actor_user_id String?
+  payload_json  Json?
+  created_at    DateTime @default(now())
+
+  issue  ProjectSiteIssue @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+  actor  User?            @relation("ProjectSiteIssueEventActor", fields: [actor_user_id], references: [id], onDelete: SetNull)
+
+  @@index([issue_id, created_at])
+  @@index([actor_user_id, created_at])
+  @@map("project_site_issue_events")
+}
+
+model ProjectDiaryEventType {
+  id                       String   @id @default(uuid())
+  event_key                String   @unique
+  event_name               String
+  category                 String? // quality | safety | material | progress | design | other
+  description              String?  @db.Text
+  schema_json              Json?
+  default_severity         String? // low | medium | high | critical
+  default_investor_visible Boolean  @default(true)
+  sort_order               Int      @default(0)
+  is_active                Boolean  @default(true)
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+
+  events ProjectDiaryEvent[]
+  rules  ProjectDiaryEventRule[]
+
+  @@index([is_active, sort_order])
+  @@map("project_diary_event_types")
+}
+
+model ProjectDiaryEvent {
+  id                  String   @id @default(uuid())
+  diary_entry_id      String
+  event_type_id       String?
+  event_key           String?
+  title               String
+  detail              String?  @db.Text
+  severity            String? // low | medium | high | critical
+  is_investor_visible Boolean  @default(true)
+  payload_json        Json?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  diary_entry ProjectDiaryEntry      @relation(fields: [diary_entry_id], references: [id], onDelete: Cascade)
+  event_type  ProjectDiaryEventType? @relation(fields: [event_type_id], references: [id], onDelete: SetNull)
+
+  @@index([diary_entry_id, created_at])
+  @@index([event_type_id])
+  @@map("project_diary_events")
+}
+
+model ProjectDiaryEventRule {
+  id            String   @id @default(uuid())
+  rule_code     String   @unique
+  rule_name     String
+  event_type_id String?
+  event_key     String?
+  rule_mode     String   @default("warning") // warning | block
+  check_type    String // require_media | require_detail | notify_when_severity
+  check_params  Json?
+  message       String
+  sort_order    Int      @default(0)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  event_type ProjectDiaryEventType? @relation(fields: [event_type_id], references: [id], onDelete: SetNull)
+
+  @@index([is_active, sort_order])
+  @@index([event_type_id, is_active])
+  @@map("project_diary_event_rules")
+}
+
+model ProjectStatus {
+  id          String   @id @default(uuid())
+  status_key  String   @unique
+  status_name String
+  description String?  @db.Text
+  sort_order  Int      @default(0)
+  is_terminal Boolean  @default(false)
+  is_active   Boolean  @default(true)
+  color_hex   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([is_active, sort_order])
+  @@map("project_statuses")
+}
+
+model ProjectStatusTransitionRule {
+  id              String   @id @default(uuid())
+  rule_code       String   @unique
+  rule_name       String
+  from_status_key String
+  to_status_key   String
+  rule_mode       String   @default("warning") // warning | block
+  check_type      String // require_customer_confirm_ready | require_start_date | require_reason
+  check_params    Json?
+  message         String
+  sort_order      Int      @default(0)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@index([is_active, from_status_key, to_status_key, sort_order])
+  @@map("project_status_transition_rules")
+}
+
+model ProjectTimelineEvent {
+  id              String   @id @default(uuid())
+  project_id      String
+  customer_id     String?
+  milestone_id    String?
+  event_key       String
+  title           String
+  description     String?  @db.Text
+  source_ref_type String?
+  source_ref_id   String?
+  actor_user_id   String?
+  happened_at     DateTime @default(now())
+  metadata_json   Json?
+  created_at      DateTime @default(now())
+
+  project   ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  customer  Customer?           @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  milestone ProjectMilestone?   @relation(fields: [milestone_id], references: [id], onDelete: SetNull)
+  actor     User?               @relation(fields: [actor_user_id], references: [id], onDelete: SetNull)
+
+  @@index([project_id, happened_at])
+  @@index([customer_id, happened_at])
+  @@index([milestone_id, happened_at])
+  @@index([event_key, happened_at])
+  @@map("project_timeline_events")
+}
+
+model ProjectDocument {
+  id              String   @id @default(uuid())
+  project_id      String
+  file_record_id  String?
+  title           String
+  file_url        String
+  file_name       String?
+  mime_type       String?
+  file_size_bytes BigInt?
+  document_scope  String   @default("internal") // investor_visible | internal | finance_procurement | legal
+  document_type   String   @default("other") // estimate | contract | appendix | drawing | meeting_minutes | purchase_doc | invoice | receipt | warranty | other
+  access_level    String   @default("team_only") // public_project | team_only | restricted
+  source_ref_type String?
+  source_ref_id   String?
+  note            String?  @db.Text
+  uploaded_by     String?
+  uploaded_at     DateTime @default(now())
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  project     ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  file_record FileRecord?         @relation("ProjectDocumentFileRecord", fields: [file_record_id], references: [id], onDelete: SetNull)
+  uploader    User?               @relation("ProjectDocumentUploader", fields: [uploaded_by], references: [id], onDelete: SetNull)
+
+  @@index([project_id, document_scope, is_active, uploaded_at])
+  @@index([project_id, document_type, is_active, uploaded_at])
+  @@index([file_record_id])
+  @@index([source_ref_type, source_ref_id])
+  @@map("project_documents")
+}
+
+model FileRecord {
+  id               String   @id @default(uuid())
+  storage_provider String   @default("external_webhook")
+  external_file_id String?
+  storage_filename String?
+  display_name     String?
+  file_name        String // legacy-compatible, mirror display_name
+  file_ext         String?
+  mime_type        String?
+  file_size_bytes  BigInt?
+  file_url         String
+  thumbnail_url    String?
+  checksum         String?
+  bucket           String?
+  folder           String?
+  purpose          String? // contract | diary_image | diary_video | estimate_attachment | other
+  tag              String?
+  owner_type       String? // project | customer | asset | general
+  owner_id         String?
+  metadata_json    Json?
+  uploaded_by      String?
+  uploaded_at      DateTime @default(now())
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  uploader            User?               @relation("FileRecordUploader", fields: [uploaded_by], references: [id], onDelete: SetNull)
+  project_documents   ProjectDocument[]   @relation("ProjectDocumentFileRecord")
+  project_diary_media ProjectDiaryMedia[] @relation("ProjectDiaryMediaFileRecord")
+  project_site_issue_plan_refs ProjectSiteIssue[]      @relation("ProjectSiteIssuePlanFileRecord")
+  project_site_issue_media     ProjectSiteIssueMedia[] @relation("ProjectSiteIssueMediaFileRecord")
+
+  @@index([purpose, uploaded_at])
+  @@index([storage_filename])
+  @@index([owner_type, owner_id, uploaded_at])
+  @@index([uploaded_by, uploaded_at])
+  @@index([is_active, uploaded_at])
+  @@map("file_records")
+}
+
+model ProjectMilestoneStatus {
+  id          String   @id @default(uuid())
+  status_key  String   @unique // pending | in_progress | completed | blocked | cancelled
+  status_name String
+  sort_order  Int      @default(0)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  milestones            ProjectMilestone[]
+  template_items        ProjectMilestoneTemplateItem[]
+  milestone_definitions ProjectMilestoneDefinition[]
+
+  @@index([is_active, sort_order])
+  @@map("project_milestone_statuses")
+}
+
+model ProjectMilestoneDefinition {
+  id                 String   @id @default(uuid())
+  definition_key     String   @unique
+  definition_name    String
+  description        String?  @db.Text
+  default_status_key String   @default("pending")
+  sort_order         Int      @default(0)
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  default_status_ref       ProjectMilestoneStatus         @relation(fields: [default_status_key], references: [status_key], onDelete: Restrict)
+  milestone_template_items ProjectMilestoneTemplateItem[]
+  project_milestones       ProjectMilestone[]
+  milestone_rules          ProjectMilestoneRule[]
+
+  @@index([is_active, sort_order, definition_name])
+  @@map("project_milestone_definitions")
+}
+
+model ProjectMilestoneRule {
+  id                      String   @id @default(uuid())
+  rule_code               String   @unique
+  rule_name               String
+  milestone_definition_id String?
+  milestone_key           String?
+  trigger_status_key      String   @default("completed")
+  check_type              String // require_contract_document | require_project_start_date
+  check_params            Json?
+  warning_message         String
+  sort_order              Int      @default(0)
+  is_active               Boolean  @default(true)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  milestone_definition ProjectMilestoneDefinition? @relation(fields: [milestone_definition_id], references: [id], onDelete: SetNull)
+
+  @@index([is_active, trigger_status_key, sort_order])
+  @@index([milestone_definition_id, is_active])
+  @@index([milestone_key, is_active])
+  @@map("project_milestone_rules")
+}
+
+model ProjectMilestoneTemplate {
+  id            String   @id @default(uuid())
+  template_code String   @unique
+  template_name String
+  description   String?  @db.Text
+  house_type    String?
+  is_active     Boolean  @default(true)
+  sort_order    Int      @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  items ProjectMilestoneTemplateItem[]
+
+  @@index([is_active, sort_order, template_name])
+  @@map("project_milestone_templates")
+}
+
+model ProjectMilestoneTemplateItem {
+  id                      String   @id @default(uuid())
+  template_id             String
+  milestone_definition_id String?
+  milestone_key           String?
+  milestone_name          String
+  status_key              String   @default("pending")
+  due_offset_days         Int?
+  sort_order              Int      @default(0)
+  note                    String?  @db.Text
+  is_active               Boolean  @default(true)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  template             ProjectMilestoneTemplate    @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  status_ref           ProjectMilestoneStatus      @relation(fields: [status_key], references: [status_key], onDelete: Restrict)
+  milestone_definition ProjectMilestoneDefinition? @relation(fields: [milestone_definition_id], references: [id], onDelete: SetNull)
+
+  @@index([template_id, is_active, sort_order])
+  @@index([milestone_definition_id])
+  @@index([template_id, status_key])
+  @@map("project_milestone_template_items")
+}
+
+model ProjectMilestone {
+  id                      String    @id @default(uuid())
+  project_id              String
+  milestone_definition_id String?
+  milestone_key           String?
+  milestone_name          String
+  description             String?   @db.Text
+  status_key              String    @default("pending")
+  due_date                DateTime?
+  completed_at            DateTime?
+  sort_order              Int       @default(0)
+  is_active               Boolean   @default(true)
+  created_by              String?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  project              ConstructionProject         @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  milestone_definition ProjectMilestoneDefinition? @relation(fields: [milestone_definition_id], references: [id], onDelete: SetNull)
+  status_ref           ProjectMilestoneStatus      @relation(fields: [status_key], references: [status_key], onDelete: Restrict)
+  creator              User?                       @relation("ProjectMilestoneCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  resource_plans       ProjectResourcePlan[]
+  timeline_events      ProjectTimelineEvent[]
+  cashflow_snapshots   ProjectCashflowSnapshot[]
+
+  @@unique([project_id, milestone_key])
+  @@index([project_id, is_active, sort_order])
+  @@index([project_id, status_key, due_date])
+  @@map("project_milestones")
+}
+
+model ProjectEstimateLink {
+  id                  String   @id @default(uuid())
+  project_id          String
+  estimation_quote_id String
+  label               String?
+  estimate_type       String? // quick_estimate | preliminary_estimate | block_estimate
+  is_active           Boolean  @default(false)
+  note                String?  @db.Text
+  linked_at           DateTime @default(now())
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  project  ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  estimate EstimationQuote     @relation(fields: [estimation_quote_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, estimation_quote_id])
+  @@index([project_id, is_active, linked_at])
+  @@index([project_id, created_at])
+  @@index([estimation_quote_id])
+  @@map("project_estimate_links")
+}
+
+model ProjectPaymentPlan {
+  id             String    @id @default(uuid())
+  project_id     String
+  milestone_name String
+  due_date       DateTime?
+  amount         BigInt?
+  plan_percent   Float?
+  status         String    @default("planned") // planned | invoiced | partially_paid | paid | overdue | cancelled
+  note           String?   @db.Text
+  sort_order     Int       @default(0)
+  is_active      Boolean   @default(true)
+  created_by     String?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  project  ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  creator  User?               @relation("ProjectPaymentPlanCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  payments ProjectPayment[]
+
+  @@index([project_id, status, due_date])
+  @@index([project_id, is_active, sort_order])
+  @@map("project_payment_plans")
+}
+
+model ProjectPayment {
+  id              String   @id @default(uuid())
+  project_id      String
+  payment_plan_id String?
+  payment_date    DateTime @default(now())
+  amount          BigInt
+  payment_method  String? // cash | transfer | card | other
+  reference_no    String?
+  note            String?  @db.Text
+  created_by      String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  project      ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  payment_plan ProjectPaymentPlan? @relation(fields: [payment_plan_id], references: [id], onDelete: SetNull)
+  creator      User?               @relation("ProjectPaymentCreator", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([project_id, payment_date])
+  @@index([payment_plan_id, payment_date])
+  @@map("project_payments")
+}
+
+model ProjectResourcePlan {
+  id                 String    @id @default(uuid())
+  project_id         String
+  milestone_id       String?
+  subcontractor_id   String?
+  plan_name          String
+  plan_role          String    @default("primary") // primary | backup | supplement
+  plan_stage         String? // concept | preliminary | detailed | execution
+  target_stage       String?
+  revision_no        Int?
+  planned_start_date DateTime?
+  planned_end_date   DateTime?
+  status             String    @default("draft") // draft | reviewing | approved | locked
+  approved_by        String?
+  approved_at        DateTime?
+  note               String?   @db.Text
+  is_active          Boolean   @default(true)
+  created_by         String?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  project              ConstructionProject         @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  active_for_material_projects ConstructionProject[] @relation("ProjectActiveMaterialPlan")
+  active_for_labor_projects    ConstructionProject[] @relation("ProjectActiveLaborPlan")
+  milestone            ProjectMilestone?           @relation(fields: [milestone_id], references: [id], onDelete: SetNull)
+  subcontractor        Supplier?                   @relation("ProjectPlanSubcontractor", fields: [subcontractor_id], references: [id], onDelete: SetNull)
+  creator              User?                       @relation("ProjectResourcePlanCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  items                ProjectResourcePlanItem[]
+  direct_purchases     ProjectDirectPurchase[]
+  material_allocations ProjectMaterialAllocation[]
+  labor_engagements    ProjectLaborEngagement[]
+
+  @@index([project_id, is_active, created_at])
+  @@index([project_id, milestone_id, status, created_at])
+  @@index([project_id, status, created_at])
+  @@index([project_id, plan_role, status, created_at])
+  @@index([subcontractor_id, status, created_at])
+  @@map("project_resource_plans")
+}
+
+model ProjectResourcePlanItem {
+  id                    String   @id @default(uuid())
+  project_id            String
+  plan_id               String
+  resource_kind         String // material | labor
+  category              String? // vat_tu_tho | ket_cau | hoan_thien | nhan_cong_xay | ...
+  item_key              String?
+  item_name             String
+  spec_text             String?
+  unit                  String?
+  quantity              Float?
+  unit_cost             BigInt?
+  estimated_cost        BigInt?
+  actual_issued_qty     Float    @default(0)
+  actual_received_qty   Float    @default(0)
+  actual_returned_qty   Float    @default(0)
+  actual_status         String? // pending | enough | shortage | excess
+  last_inventory_txn_id String?
+  labor_type            String? // tho_xay | tho_dap_pha | ky_thuat_cao | ...
+  labor_trade_id        String?
+  worker_count          Int?
+  work_days             Float?
+  supplier_name         String?
+  note                  String?  @db.Text
+  sort_order            Int      @default(0)
+  is_active             Boolean  @default(true)
+  created_by            String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  project              ConstructionProject         @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  plan                 ProjectResourcePlan         @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  creator              User?                       @relation("ProjectResourcePlanItemCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  labor_trade          LaborTrade?                 @relation(fields: [labor_trade_id], references: [id], onDelete: SetNull)
+  material_allocations ProjectMaterialAllocation[]
+
+  @@index([project_id, plan_id, is_active, sort_order])
+  @@index([project_id, resource_kind, is_active])
+  @@index([labor_trade_id])
+  @@map("project_resource_plan_items")
+}
+
+model ProjectMaterialAllocation {
+  id            String   @id @default(uuid())
+  project_id    String
+  plan_id       String
+  plan_item_id  String
+  material_key  String
+  item_unit     String?
+  allocated_qty Float
+  note          String?  @db.Text
+  source_type   String   @default("project_on_site_free_stock") // project_on_site_free_stock
+  is_active     Boolean  @default(true)
+  created_by    String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  project   ConstructionProject     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  plan      ProjectResourcePlan     @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  plan_item ProjectResourcePlanItem @relation(fields: [plan_item_id], references: [id], onDelete: Cascade)
+  creator   User?                   @relation("ProjectMaterialAllocationCreator", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([project_id, material_key, is_active])
+  @@index([plan_id, plan_item_id, is_active])
+  @@map("project_material_allocations")
+}
+
+model LaborTrade {
+  id           String   @id @default(uuid())
+  trade_key    String   @unique
+  trade_name   String
+  unit_text    String?
+  default_rate BigInt?
+  description  String?  @db.Text
+  sort_order   Int      @default(0)
+  is_active    Boolean  @default(true)
+  created_by   String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+    creator     User?                    @relation("LaborTradeCreator", fields: [created_by], references: [id], onDelete: SetNull)
+    workers     LaborWorker[]
+    engagements ProjectLaborEngagement[]
+    roster_entries ProjectLaborRoster[]
+  plan_items  ProjectResourcePlanItem[]
+
+  @@index([is_active, sort_order])
+  @@map("labor_trades")
+}
+
+model LaborCrew {
+  id          String   @id @default(uuid())
+  crew_key    String   @unique
+  crew_name   String
+  leader_name String?
+  phone       String?
+  description String?  @db.Text
+  sort_order  Int      @default(0)
+  is_active   Boolean  @default(true)
+  created_by  String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  creator     User?                    @relation("LaborCrewCreator", fields: [created_by], references: [id], onDelete: SetNull)
+    workers     LaborWorker[]
+    engagements ProjectLaborEngagement[]
+    roster_entries ProjectLaborRoster[]
+    payments    ProjectLaborPayment[]
+
+  @@index([is_active, sort_order])
+  @@map("labor_crews")
+}
+
+model LaborSkillLevel {
+  id           String   @id @default(uuid())
+  skill_key    String   @unique
+  skill_name   String
+  default_rate BigInt?
+  description  String?  @db.Text
+  sort_order   Int      @default(0)
+  is_active    Boolean  @default(true)
+  created_by   String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  creator User?         @relation("LaborSkillLevelCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  workers LaborWorker[]
+
+  @@index([is_active, sort_order])
+  @@map("labor_skill_levels")
+}
+
+model LaborWorker {
+  id                String   @id @default(uuid())
+  worker_code       String   @unique
+  full_name         String
+  phone             String?
+  trade_id          String?
+  crew_id           String?
+  skill_level_id    String?
+  worker_category   String?
+  employment_mode   String?
+  default_unit_text String?
+  default_rate      BigInt?
+  home_area         String?
+  status            String   @default("active") // active | paused | inactive
+  is_active         Boolean  @default(true)
+  notes             String?  @db.Text
+  created_by        String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  creator     User?                    @relation("LaborWorkerCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  trade       LaborTrade?              @relation(fields: [trade_id], references: [id], onDelete: SetNull)
+  crew        LaborCrew?               @relation(fields: [crew_id], references: [id], onDelete: SetNull)
+  skill_level LaborSkillLevel?         @relation(fields: [skill_level_id], references: [id], onDelete: SetNull)
+  engagements ProjectLaborEngagement[]
+  attendances ProjectLaborAttendance[]
+  roster_entries ProjectLaborRoster[]
+  payments    ProjectLaborPayment[]
+
+  @@index([status, updated_at])
+  @@index([trade_id, crew_id])
+  @@index([worker_category, skill_level_id])
+  @@map("labor_workers")
+}
+
+model ProjectLaborEngagement {
+  id                   String    @id @default(uuid())
+  project_id           String
+  plan_id              String?
+  worker_id            String?
+  crew_id              String?
+  trade_id             String?
+  engagement_type      String    @default("daily") // daily | piecework | contract
+  unit_text            String?
+  rate_amount          BigInt?
+  planned_qty          Float?
+  planned_total_amount BigInt?
+  start_date           DateTime?
+  end_date             DateTime?
+  status               String    @default("planned") // planned | active | paused | completed | cancelled
+  is_active            Boolean   @default(true)
+  note                 String?   @db.Text
+  created_by           String?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  project     ConstructionProject      @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  plan        ProjectResourcePlan?     @relation(fields: [plan_id], references: [id], onDelete: SetNull)
+  worker      LaborWorker?             @relation(fields: [worker_id], references: [id], onDelete: SetNull)
+  crew        LaborCrew?               @relation(fields: [crew_id], references: [id], onDelete: SetNull)
+  trade       LaborTrade?              @relation(fields: [trade_id], references: [id], onDelete: SetNull)
+    creator     User?                    @relation("LaborProjectEngagementCreator", fields: [created_by], references: [id], onDelete: SetNull)
+    attendances ProjectLaborAttendance[]
+    payments    ProjectLaborPayment[]
+
+  @@index([project_id, status, start_date])
+  @@index([project_id, plan_id, status, start_date])
+  @@index([project_id, crew_id, trade_id])
+  @@map("project_labor_engagements")
+}
+
+model ProjectLaborAttendance {
+  id              String   @id @default(uuid())
+  project_id      String
+  diary_entry_id  String?
+  engagement_id   String?
+  worker_id       String?
+  attendance_date DateTime
+  shift_type      String? // morning | afternoon | full_day | night
+  source_type     String   @default("manual") // manual | diary
+  attendance_status String @default("confirmed") // draft | confirmed
+  work_qty        Float?
+  amount          BigInt?
+  note            String?  @db.Text
+  confirmed_by    String?
+  confirmed_at    DateTime?
+  created_by      String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  project    ConstructionProject     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  diary_entry ProjectDiaryEntry?     @relation(fields: [diary_entry_id], references: [id], onDelete: Cascade)
+  engagement ProjectLaborEngagement? @relation(fields: [engagement_id], references: [id], onDelete: SetNull)
+  worker     LaborWorker?            @relation(fields: [worker_id], references: [id], onDelete: SetNull)
+  confirmer  User?                   @relation("ProjectLaborAttendanceConfirmer", fields: [confirmed_by], references: [id], onDelete: SetNull)
+  creator    User?                   @relation("ProjectLaborAttendanceCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  payment_batch_links ProjectLaborPaymentBatchAttendance[]
+    
+  @@index([project_id, attendance_date])
+  @@index([project_id, worker_id, attendance_date])
+  @@index([project_id, attendance_status, attendance_date])
+  @@index([diary_entry_id])
+  @@map("project_labor_attendances")
+}
+
+model ProjectLaborRoster {
+  id          String   @id @default(uuid())
+  project_id  String
+  worker_id   String?
+  crew_id     String?
+  trade_id    String?
+  is_primary  Boolean  @default(false)
+  is_active   Boolean  @default(true)
+  sort_order  Int      @default(0)
+  note        String?  @db.Text
+  created_by  String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  project ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  worker  LaborWorker?        @relation(fields: [worker_id], references: [id], onDelete: SetNull)
+  crew    LaborCrew?          @relation(fields: [crew_id], references: [id], onDelete: SetNull)
+  trade   LaborTrade?         @relation(fields: [trade_id], references: [id], onDelete: SetNull)
+  creator User?               @relation("ProjectLaborRosterCreator", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([project_id, is_active, sort_order])
+  @@index([project_id, worker_id])
+  @@map("project_labor_roster")
+}
+
+model ProjectLaborPayment {
+  id            String   @id @default(uuid())
+  project_id    String
+  batch_id      String?
+  engagement_id String?
+  worker_id     String?
+  crew_id       String?
+  payment_date  DateTime
+  payment_type  String   @default("payment") // advance | payment | settlement
+  amount        BigInt
+  is_active     Boolean  @default(true)
+  note          String?  @db.Text
+  created_by    String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  project    ConstructionProject     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  batch      ProjectLaborPaymentBatch? @relation(fields: [batch_id], references: [id], onDelete: SetNull)
+  engagement ProjectLaborEngagement? @relation(fields: [engagement_id], references: [id], onDelete: SetNull)
+  worker     LaborWorker?            @relation(fields: [worker_id], references: [id], onDelete: SetNull)
+  crew       LaborCrew?              @relation(fields: [crew_id], references: [id], onDelete: SetNull)
+  creator    User?                   @relation("ProjectLaborPaymentCreator", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([project_id, payment_date])
+  @@index([batch_id, payment_date])
+  @@index([project_id, worker_id, payment_date])
+  @@index([engagement_id])
+  @@map("project_labor_payments")
+}
+
+model ProjectLaborPaymentBatch {
+  id                   String   @id @default(uuid())
+  project_id           String
+  batch_code           String   @unique
+  batch_name           String
+  period_from          DateTime?
+  period_to            DateTime?
+  planned_payment_date DateTime?
+  actual_payment_date  DateTime?
+  payment_type         String   @default("payment") // advance | payment | settlement
+  status               String   @default("draft") // draft | approved | paid | cancelled
+  note                 String?  @db.Text
+  cancel_reason        String?  @db.Text
+  created_by           String?
+  approved_by          String?
+  approved_at          DateTime?
+  paid_by              String?
+  paid_at              DateTime?
+  cancelled_by         String?
+  cancelled_at         DateTime?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  project   ConstructionProject @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  creator   User?               @relation("ProjectLaborPaymentBatchCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  approver  User?               @relation("ProjectLaborPaymentBatchApprover", fields: [approved_by], references: [id], onDelete: SetNull)
+  payer     User?               @relation("ProjectLaborPaymentBatchPayer", fields: [paid_by], references: [id], onDelete: SetNull)
+  canceller User?               @relation("ProjectLaborPaymentBatchCanceller", fields: [cancelled_by], references: [id], onDelete: SetNull)
+  payments  ProjectLaborPayment[]
+  attendance_links ProjectLaborPaymentBatchAttendance[]
+
+  @@index([project_id, status, planned_payment_date])
+  @@index([project_id, period_from, period_to])
+  @@map("project_labor_payment_batches")
+}
+
+model ProjectLaborPaymentBatchAttendance {
+  id            String   @id @default(uuid())
+  batch_id       String
+  attendance_id  String
+  created_at     DateTime @default(now())
+
+  batch      ProjectLaborPaymentBatch @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  attendance ProjectLaborAttendance   @relation(fields: [attendance_id], references: [id], onDelete: Cascade)
+
+  @@unique([batch_id, attendance_id])
+  @@index([attendance_id])
+  @@map("project_labor_payment_batch_attendances")
+}
+
+model Asset {
+  id                      String    @id @default(uuid())
+  asset_code              String    @unique
+  asset_name              String
+  category                String?
+  asset_type_id           String?
+  asset_type              String    @default("equipment") // legacy fallback
+  unit_id                 String?
+  unit_text               String?
+  serial_no               String?
+  brand                   String?
+  model                   String?
+  manufacturer            String?
+  origin_country          String?
+  purchase_date           DateTime?
+  purchase_cost           BigInt?
+  acquisition_method      String? // mua_moi | mua_cu | dieu_chuyen | thue | khac
+  acquisition_note        String?   @db.Text
+  co_number               String?
+  cq_number               String?
+  doc_urls_json           Json?
+  warranty_months         Int?
+  warranty_start_date     DateTime?
+  warranty_end_date       DateTime?
+  warranty_provider       String?
+  warranty_terms          String?   @db.Text
+  depreciation_method     String? // straight_line | reducing_balance | none
+  depreciation_months     Int?
+  depreciation_start_date DateTime?
+  salvage_value           BigInt?
+  commissioned_at         DateTime?
+  retired_at              DateTime?
+  status                  String    @default("available") // available | in_use | maintenance | retired | lost
+  condition_status        String    @default("good") // good | fair | poor | broken
+  current_holder_user_id  String?
+  current_customer_id     String?
+  current_project_id      String?
+  current_location        String?
+  notes                   String?   @db.Text
+  metadata_json           Json?
+  is_active               Boolean   @default(true)
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  current_holder   User?                 @relation("AssetCurrentHolder", fields: [current_holder_user_id], references: [id], onDelete: SetNull)
+  current_customer Customer?             @relation("AssetCurrentCustomer", fields: [current_customer_id], references: [id], onDelete: SetNull)
+  current_project  ConstructionProject?  @relation("AssetCurrentProject", fields: [current_project_id], references: [id], onDelete: SetNull)
+  asset_type_ref   AssetType?            @relation(fields: [asset_type_id], references: [id], onDelete: SetNull)
+  unit_ref         Unit?                 @relation(fields: [unit_id], references: [id], onDelete: SetNull)
+  assignments      AssetAssignment[]
+  lifecycle_events AssetLifecycleEvent[]
+
+  @@index([status, is_active, updated_at])
+  @@index([asset_type, is_active])
+  @@index([asset_type_id, is_active])
+  @@index([unit_id, is_active])
+  @@index([current_holder_user_id, status])
+  @@index([current_customer_id, status])
+  @@index([current_project_id, status])
+  @@map("assets")
+}
+
+model AssetLifecycleEvent {
+  id            String   @id @default(uuid())
+  asset_id      String
+  event_key     String // created | updated | assigned | returned | maintenance | warranty_updated | retired
+  title         String
+  description   String?  @db.Text
+  metadata_json Json?
+  actor_user_id String?
+  happened_at   DateTime @default(now())
+  created_at    DateTime @default(now())
+
+  asset Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actor_user_id], references: [id], onDelete: SetNull)
+
+  @@index([asset_id, happened_at])
+  @@index([event_key, happened_at])
+  @@map("asset_lifecycle_events")
+}
+
+model AssetActionType {
+  id                          String   @id @default(uuid())
+  action_key                  String   @unique
+  action_name                 String
+  category                    String   @default("lifecycle") // lifecycle | maintenance | warranty | audit | handover
+  requires_due_at             Boolean  @default(false)
+  requires_note               Boolean  @default(false)
+  requires_customer           Boolean  @default(false)
+  requires_project            Boolean  @default(false)
+  requires_handover_from      Boolean  @default(false)
+  requires_handover_to        Boolean  @default(false)
+  apply_owner_transfer        Boolean  @default(false)
+  requires_warranty_from_date Boolean  @default(false)
+  requires_warranty_to_date   Boolean  @default(false)
+  requires_warranty_provider  Boolean  @default(false)
+  requires_attachment         Boolean  @default(false)
+  requires_status_to          Boolean  @default(false)
+  requires_quantity           Boolean  @default(false)
+  allowed_status_to_json      Json?
+  form_schema_json            Json?
+  document_template_key       String?
+  default_priority            String?
+  is_active                   Boolean  @default(true)
+  sort_order                  Int      @default(0)
+  description                 String?  @db.Text
+  created_at                  DateTime @default(now())
+  updated_at                  DateTime @updatedAt
+
+  @@index([category, is_active, sort_order])
+  @@map("asset_action_types")
+}
+
+model Unit {
+  id           String   @id @default(uuid())
+  unit_key     String   @unique // cai, bo, m, m2, kg...
+  unit_name    String
+  symbol       String?
+  category_key String   @default("other") // count|length|area|volume|mass|other
+  description  String?  @db.Text
+  sort_order   Int      @default(0)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  assets              Asset[]
+  asset_types_default AssetType[] @relation("AssetTypeDefaultUnit")
+
+  @@index([category_key, is_active, sort_order])
+  @@map("units")
+}
+
+model AssetType {
+  id              String   @id @default(uuid())
+  type_key        String   @unique
+  type_name       String
+  description     String?  @db.Text
+  default_unit_id String?
+  is_active       Boolean  @default(true)
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  default_unit Unit?   @relation("AssetTypeDefaultUnit", fields: [default_unit_id], references: [id], onDelete: SetNull)
+  assets       Asset[]
+
+  @@index([is_active, sort_order])
+  @@index([default_unit_id])
+  @@map("asset_types")
+}
+
+model AssetAssignment {
+  id                  String    @id @default(uuid())
+  asset_id            String
+  assigned_to_user_id String
+  customer_id         String?
+  project_id          String?
+  assigned_by         String?
+  purpose             String?
+  quantity            Float     @default(1)
+  assigned_at         DateTime  @default(now())
+  expected_return_at  DateTime?
+  returned_at         DateTime?
+  return_note         String?   @db.Text
+  status              String    @default("assigned") // assigned | returned | cancelled | overdue
+  metadata_json       Json?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  asset         Asset                @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  assigned_user User                 @relation("AssetAssignedUser", fields: [assigned_to_user_id], references: [id], onDelete: Cascade)
+  assigner      User?                @relation("AssetAssignedBy", fields: [assigned_by], references: [id], onDelete: SetNull)
+  customer      Customer?            @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  project       ConstructionProject? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+
+  @@index([asset_id, status, assigned_at])
+  @@index([assigned_to_user_id, status, expected_return_at])
+  @@index([customer_id, assigned_at])
+  @@index([project_id, assigned_at])
+  @@index([status, expected_return_at])
+  @@map("asset_assignments")
+}
+
+// Phuong an ghep cong trinh theo block (lego) cho tung khach
+model ProjectAssembly {
+  id          String   @id @default(uuid())
+  customer_id String?
+  name        String
+  house_type  String?
+  style       String?
+  level       String?
+  region_code String?
+  status      String   @default("draft") // draft | estimated | archived
+  created_by  String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  customer     Customer?               @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  blocks       ProjectAssemblyBlock[]
+  preset_links ProjectAssemblyPreset[] @relation("PresetSourceAssembly")
+
+  @@index([customer_id, created_at])
+  @@index([status, created_at])
+  @@map("project_assemblies")
+}
+
+// Mau phuong an assembly de tai su dung cho khach khac
+model ProjectAssemblyPreset {
+  id                 String   @id @default(uuid())
+  name               String
+  source_assembly_id String?
+  house_type         String?
+  style              String?
+  level              String?
+  region_code        String?
+  is_active          Boolean  @default(true)
+  created_by         String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  source_assembly ProjectAssembly?             @relation("PresetSourceAssembly", fields: [source_assembly_id], references: [id], onDelete: SetNull)
+  blocks          ProjectAssemblyPresetBlock[]
+
+  @@index([is_active, updated_at])
+  @@index([house_type, style, level])
+  @@map("project_assembly_presets")
+}
+
+model ProjectAssemblyPresetBlock {
+  id              String   @id @default(uuid())
+  preset_id       String
+  component_type  String
+  template_id     String?
+  level_index     Int      @default(0)
+  block_name      String?
+  dimensions_json Json?
+  sort_order      Int      @default(0)
+  length_order    Int      @default(0)
+  height_order    Int      @default(0)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  preset   ProjectAssemblyPreset     @relation(fields: [preset_id], references: [id], onDelete: Cascade)
+  template EstimationTemplateHeader? @relation(fields: [template_id], references: [id], onDelete: SetNull)
+
+  @@index([preset_id, is_active, sort_order])
+  @@index([component_type, is_active])
+  @@index([template_id])
+  @@map("project_assembly_preset_blocks")
+}
+
+// Tung khoi ghep cua 1 phuong an assembly
+model ProjectAssemblyBlock {
+  id                  String   @id @default(uuid())
+  assembly_id         String
+  component_type      String
+  template_id         String?
+  level_index         Int      @default(0) // 0=tret, 1=tang 2, ...
+  block_name          String?
+  dimensions_json     Json?
+  facts_override_json Json?
+  sort_order          Int      @default(0)
+  length_order        Int      @default(0)
+  height_order        Int      @default(0)
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  assembly ProjectAssembly           @relation(fields: [assembly_id], references: [id], onDelete: Cascade)
+  template EstimationTemplateHeader? @relation(fields: [template_id], references: [id], onDelete: SetNull)
+
+  @@index([assembly_id, is_active, sort_order])
+  @@index([component_type, is_active])
+  @@index([template_id])
+  @@map("project_assembly_blocks")
+}
+
+// Snapshot yeu cau/boc tach theo tung lan (append-only, co version)
+model ProjectRequirementSnapshot {
+  id                   String    @id @default(uuid())
+  customer_id          String
+  source_type          String // conversation | contact_log | audio | manual | analysis
+  source_ref_id        String?
+  version_no           Int
+  is_current           Boolean   @default(true)
+  status               String    @default("new") // new | reviewed | approved | rejected | converted
+  extracted_json       Json?
+  normalized_json      Json?
+  confidence_score     Float?
+  note                 String?   @db.Text
+  created_by           String?
+  approved_by          String?
+  approved_at          DateTime?
+  converted_project_id String?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  customer          Customer             @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  creator           User?                @relation("RequirementSnapshotCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  approver          User?                @relation("RequirementSnapshotApprover", fields: [approved_by], references: [id], onDelete: SetNull)
+  converted_project ConstructionProject? @relation("RequirementSnapshotConvertedProject", fields: [converted_project_id], references: [id], onDelete: SetNull)
+
+  @@unique([customer_id, version_no])
+  @@index([customer_id, is_current, created_at])
+  @@index([customer_id, status, created_at])
+  @@index([source_type, source_ref_id])
+  @@map("project_requirement_snapshots")
+}
+
+// â”€â”€â”€ Bot Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Má»—i channel (zalo/messenger) cÃ³ config riÃªng
+model BotConfig {
+  id                    String   @id @default(uuid())
+  channel               String   @unique // zalo | messenger
+  is_enabled            Boolean  @default(false)
+  // Trigger conditions
+  offline_threshold_min Int      @default(30) // bot báº­t sau X phÃºt sales offline
+  schedule_enabled      Boolean  @default(true)
+  schedule_start        String   @default("22:00") // HH:mm
+  schedule_end          String   @default("07:00") // HH:mm
+  // Conversation lifecycle
+  timeout_close_min     Int      @default(120) // Ä‘Ã³ng conv sau X phÃºt im láº·ng
+  // Sensitive keywords â€” bot khÃ´ng tá»± tráº£ lá»i, chuyá»ƒn sang "gá»i láº¡i"
+  sensitive_keywords    String[] @default([])
+  // Messages
+  welcome_msg           String   @default("Xin chÃ o! TÃ´i lÃ  trá»£ lÃ½ tÆ° váº¥n xÃ¢y dá»±ng. TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?") @db.Text
+  offline_msg           String   @default("Sales Ä‘ang báº­n, tÃ´i sáº½ ghi nháº­n vÃ  sales sáº½ liÃªn há»‡ láº¡i sá»›m nháº¥t.") @db.Text
+  callback_msg          String   @default("ÄÃ£ ghi nháº­n yÃªu cáº§u gá»i láº¡i. Sales sáº½ liÃªn há»‡ báº¡n trong thá»i gian sá»›m nháº¥t!") @db.Text
+  ask_contact_msg       String   @default("Äá»ƒ há»— trá»£ tá»‘t hÆ¡n, báº¡n vui lÃ²ng cho biáº¿t sá»‘ Ä‘iá»‡n thoáº¡i hoáº·c tÃªn cá»§a mÃ¬nh nhÃ©!") @db.Text
+  ask_address_msg       String   @default("Báº¡n Ä‘ang á»Ÿ khu vá»±c nÃ o Ä‘á»ƒ mÃ¬nh tÆ° váº¥n phÃ¹ há»£p vá»›i quy Ä‘á»‹nh xÃ¢y dá»±ng Ä‘á»‹a phÆ°Æ¡ng áº¡?") @db.Text
+  ask_meeting_msg       String   @default("BÃªn mÃ¬nh cÃ³ dá»‹ch vá»¥ kháº£o sÃ¡t máº·t báº±ng vÃ  tÆ° váº¥n thiáº¿t káº¿ miá»…n phÃ­ táº¡i nhÃ . Báº¡n cÃ³ ráº£nh buá»•i nÃ o trong tuáº§n nÃ y Ä‘á»ƒ mÃ¬nh sáº¯p xáº¿p khÃ´ng áº¡?") @db.Text
+  confirm_meeting_msg   String   @default("Tuyá»‡t vá»i! MÃ¬nh xÃ¡c nháº­n háº¹n gáº·p báº¡n vÃ o {time} táº¡i {location}. BÃªn mÃ¬nh sáº½ liÃªn há»‡ láº¡i Ä‘á»ƒ xÃ¡c nháº­n trÆ°á»›c buá»•i háº¹n nhÃ©!") @db.Text
+  no_info_msg           String   @default("Xin lá»—i, tÃ´i chÆ°a cÃ³ thÃ´ng tin vá» váº¥n Ä‘á» nÃ y. Báº¡n cÃ³ thá»ƒ há»i cÃ¢u khÃ¡c hoáº·c Ä‘á»ƒ láº¡i SÄT Ä‘á»ƒ sales tÆ° váº¥n chi tiáº¿t hÆ¡n nhÃ©!") @db.Text
+  // RAG config
+  rag_enabled           Boolean  @default(true)
+  rag_score_threshold   Float    @default(0.70)
+  // Platform credentials â€” lÆ°u DB Ä‘á»ƒ khÃ´ng cáº§n restart khi thay Ä‘á»•i
+  bot_token             String?  @db.Text // TELEGRAM_BOT_TOKEN / ZALO_OA_ACCESS_TOKEN / MESSENGER_PAGE_ACCESS_TOKEN
+  mock_mode             Boolean  @default(true) // true = khÃ´ng gá»­i tháº­t
+  updated_by            String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@map("bot_configs")
+}
+
+// â”€â”€â”€ Conversations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Má»—i conversation = 1 thread vá»›i 1 ngÆ°á»i dÃ¹ng trÃªn 1 channel
+model Conversation {
+  id                String    @id @default(uuid())
+  channel           String // zalo | messenger | telegram
+  external_conv_id  String // ID tá»« Zalo/Meta
+  external_user_id  String // Zalo user_id / PSID
+  display_name      String?
+  avatar_url        String?
+  // Customer link (null cho Ä‘áº¿n khi match/extract Ä‘Æ°á»£c SÄT)
+  customer_id       String?
+  // State
+  status            String    @default("active") // active | closed | pending_callback
+  bot_mode          String    @default("auto") // auto | manual | takeover
+  close_reason      String? // timeout | callback_requested | sales_closed | resolved
+  // Tracking
+  last_message_at   DateTime  @default(now())
+  opened_at         DateTime  @default(now())
+  closed_at         DateTime?
+  // Flags
+  has_contact_info  Boolean   @default(false) // Ä‘Ã£ láº¥y Ä‘Æ°á»£c SÄT/tÃªn
+  has_address       Boolean   @default(false) // Ä‘Ã£ láº¥y Ä‘Æ°á»£c Ä‘á»‹a chá»‰
+  meeting_requested Boolean   @default(false) // bot Ä‘Ã£ má»i háº¹n
+  meeting_confirmed Boolean   @default(false) // khÃ¡ch Ä‘á»“ng Ã½ háº¹n
+  needs_callback    Boolean   @default(false) // khÃ¡ch yÃªu cáº§u gá»i láº¡i
+  is_urgent         Boolean   @default(false) // cáº§n há»— trá»£ ngay
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  messages      Message[]
+  analysis      ConversationAnalysis?
+  bot_sessions  BotSession[]
+  contact_logs  ContactLog[]
+  analysis_runs AnalysisRun[]
+
+  @@unique([channel, external_conv_id])
+  @@map("conversations")
+}
+
+// â”€â”€â”€ Messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+model Message {
+  id              String    @id @default(uuid())
+  conversation_id String
+  direction       String // in | out
+  sender_type     String // customer | bot | sales
+  sender_id       String? // sales user_id náº¿u sender_type = sales
+  content         String    @db.Text
+  msg_type        String    @default("text") // text | image | file | sticker
+  external_msg_id String? // ID tá»« Zalo/Meta (Ä‘á»ƒ dedup)
+  is_read         Boolean   @default(false)
+  // NgÆ°á»i gá»­i hiá»ƒn thá»‹ â€” ai gá»­i tin nÃ y
+  // VÃ­ dá»¥: "Nguyá»…n Sales", "Chatbot", "Tráº£ lá»i trÃªn Zalo", "Tráº£ lá»i trÃªn Messenger", "Tráº£ lá»i trÃªn Telegram"
+  sender_label    String?
+  sender_username String? // username cá»§a sales náº¿u sender_type=sales
+  metadata        Json?
+  // Feedback tá»« sales
+  feedback        String? // liked | disliked
+  feedback_by     String? // user_id
+  feedback_at     DateTime?
+  rag_status      String? // pending | imported | similar | skipped
+  rag_entry_id    String? // link sang RagEntry náº¿u Ä‘Ã£ import
+  created_at      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// â”€â”€â”€ Conversation Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 1:1 vá»›i Conversation, táº¡o sau khi conversation Ä‘Ã³ng
+model ConversationAnalysis {
+  id                   String   @id @default(uuid())
+  conversation_id      String   @unique
+  // Customer info extracted
+  extracted_name       String?
+  extracted_phone      String?
+  extracted_address    String?
+  extracted_house_type String?
+  extracted_budget     BigInt?
+  // Classification
+  stage                String? // tim_hieu | tu_van | da_chot | bao_hanh | khac
+  attitude             String? // tich_cuc | trung_lap | kho_tinh | that_vong
+  close_probability    Int? // 1-10
+  needs_urgent_support Boolean  @default(false)
+  callback_requested   Boolean  @default(false)
+  // AI output
+  summary              String?  @db.Text
+  key_concerns         String[] @default([]) // má»‘i quan tÃ¢m chÃ­nh cá»§a KH
+  next_action          String?  @db.Text
+  sentiment_timeline   Json? // [{msg_index, sentiment}] theo tá»«ng tin
+  // Meta
+  analyzed_at          DateTime @default(now())
+  model_used           String   @default("gemma3:4b")
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@map("conversation_analyses")
+}
+
+// â”€â”€â”€ Bot Sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Track tá»«ng láº§n bot Ä‘Æ°á»£c kÃ­ch hoáº¡t/táº¯t trong 1 conversation
+model BotSession {
+  id              String    @id @default(uuid())
+  conversation_id String
+  triggered_by    String // offline | schedule | manual
+  started_at      DateTime  @default(now())
+  ended_at        DateTime?
+  ended_by        String? // timeout | takeover | callback | sales_close
+  messages_count  Int       @default(0)
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@map("bot_sessions")
+}
+
+// â”€â”€â”€ RAG Knowledge Base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Má»—i entry = 1 Ä‘Æ¡n vá»‹ kiáº¿n thá»©c cho chatbot
+model RagEntry {
+  id                String    @id @default(uuid())
+  type              String // qa | knowledge | price | process | policy
+  category          String? // NhÃ  phá»‘ | Biá»‡t thá»± | Chung cÆ° | Chung | ...
+  question          String?   @db.Text // CÃ¢u há»i (dÃ¹ng cho type=qa)
+  answer            String    @db.Text // CÃ¢u tráº£ lá»i / ná»™i dung kiáº¿n thá»©c
+  tags              String[]  @default([])
+  // Vector search
+  qdrant_id         String?   @unique // ID trong Qdrant collection
+  // Google Sheets sync
+  sheet_row         Int? // Row trong Google Sheet
+  // Metadata
+  created_by        String?
+  is_active         Boolean   @default(true)
+  quality           Int       @default(5)
+  // Nguá»“n gá»‘c
+  source            String    @default("manual") // manual | chat_feedback
+  source_message_id String? // Message gá»‘c náº¿u source=chat_feedback
+  // Training data
+  used_in_training  Boolean   @default(false)
+  trained_at        DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  creator User? @relation(fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@map("rag_entries")
+}
+
+// â”€â”€â”€ Notification Reads â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Track thÃ´ng bÃ¡o Ä‘Ã£ Ä‘á»c theo tá»«ng user
+model NotificationRead {
+  id        String   @id @default(uuid())
+  user_id   String
+  notif_key String // unique key cá»§a notification: "log:{id}" | "lead:{id}"
+  read_at   DateTime @default(now())
+
+  @@unique([user_id, notif_key])
+  @@map("notification_reads")
+}
+
+model WorkSuggestion {
+  id                          String    @id @default(uuid())
+  customer_id                 String?
+  care_activity_id            String?
+  source_ref_type             String?
+  source_ref_id               String?
+  title                       String
+  detail                      String?   @db.Text
+  next_action_text            String?   @db.Text
+  due_at                      DateTime?
+  priority                    String    @default("normal") // low | normal | high | urgent
+  status                      String    @default("pending") // pending | accepted | rejected | assigned | done | cancelled
+  created_by                  String?
+  assigned_by                 String?
+  assigned_to                 String? // primary assignee
+  sla_due_at                  DateTime?
+  sla_policy_key              String?
+  current_sla_level_key       String?
+  escalated_at                DateTime?
+  last_escalation_notified_at DateTime?
+  next_escalation_check_at    DateTime?
+  metadata_json               Json?
+  created_at                  DateTime  @default(now())
+  updated_at                  DateTime  @updatedAt
+
+  customer        Customer?                 @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  activity        CustomerCareActivity?     @relation(fields: [care_activity_id], references: [id], onDelete: SetNull)
+  recipients      WorkSuggestionRecipient[]
+  timeline_events ActionTimelineEvent[]
+  sla_logs        SlaEscalationLog[]
+
+  @@index([customer_id, created_at])
+  @@index([status, due_at])
+  @@index([assigned_to, status, due_at])
+  @@index([status, sla_due_at])
+  @@index([next_escalation_check_at, status])
+  @@index([current_sla_level_key, status])
+  @@index([source_ref_type, source_ref_id])
+  @@map("work_suggestions")
+}
+
+model SlaPolicy {
+  id             String   @id @default(uuid())
+  policy_key     String   @unique
+  name           String
+  is_active      Boolean  @default(true)
+  priority       Int      @default(0)
+  match_json     Json?
+  target_minutes Int
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  levels SlaPolicyLevel[]
+  logs   SlaEscalationLog[]
+
+  @@index([is_active, priority])
+  @@map("sla_policies")
+}
+
+model SlaPolicyLevel {
+  id                  String   @id @default(uuid())
+  policy_id           String
+  level_key           String
+  level_name          String
+  sort_order          Int      @default(0)
+  trigger_type        String // before_due | after_due
+  trigger_minutes     Int
+  cooldown_minutes    Int      @default(60)
+  notify_type         String? // sla_warning | sla_overdue | sla_escalated
+  notify_targets_json Json?
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  policy SlaPolicy @relation(fields: [policy_id], references: [id], onDelete: Cascade)
+
+  @@unique([policy_id, level_key])
+  @@index([policy_id, is_active, sort_order])
+  @@map("sla_policy_levels")
+}
+
+model SlaEscalationLog {
+  id                 String   @id @default(uuid())
+  work_suggestion_id String
+  policy_id          String?
+  policy_key         String?
+  from_level_key     String?
+  to_level_key       String?
+  reason             String?
+  snapshot_json      Json?
+  triggered_by       String? // system | user_id
+  created_at         DateTime @default(now())
+
+  suggestion WorkSuggestion @relation(fields: [work_suggestion_id], references: [id], onDelete: Cascade)
+  policy     SlaPolicy?     @relation(fields: [policy_id], references: [id], onDelete: SetNull)
+
+  @@index([work_suggestion_id, created_at])
+  @@index([policy_key, created_at])
+  @@map("sla_escalation_logs")
+}
+
+model ActionTimelineEvent {
+  id                 String   @id @default(uuid())
+  work_suggestion_id String
+  customer_id        String?
+  event_key          String // created | assigned | reassigned | updated | accepted | rejected | done | cancelled | due_changed | priority_changed
+  title              String
+  description        String?  @db.Text
+  metadata_json      Json?
+  actor_user_id      String?
+  created_at         DateTime @default(now())
+
+  suggestion WorkSuggestion @relation(fields: [work_suggestion_id], references: [id], onDelete: Cascade)
+  customer   Customer?      @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  actor      User?          @relation(fields: [actor_user_id], references: [id], onDelete: SetNull)
+
+  @@index([work_suggestion_id, created_at])
+  @@index([customer_id, created_at])
+  @@index([event_key, created_at])
+  @@map("action_timeline_events")
+}
+
+model WorkSuggestionRecipient {
+  id              String    @id @default(uuid())
+  suggestion_id   String
+  user_id         String
+  role            String    @default("secondary") // primary | secondary
+  response_status String    @default("pending") // pending | accepted | rejected | assigned | done | dismissed
+  responded_at    DateTime?
+  responded_by    String?
+  note            String?   @db.Text
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  suggestion WorkSuggestion @relation(fields: [suggestion_id], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([suggestion_id, user_id])
+  @@index([user_id, response_status, created_at])
+  @@map("work_suggestion_recipients")
+}
+
+model UserNotification {
+  id              String    @id @default(uuid())
+  user_id         String
+  type            String // work_new | work_assigned | work_rejected | work_done | info
+  title           String
+  message         String?   @db.Text
+  status          String    @default("pending") // pending | read | accepted | rejected | done | cancelled
+  source_type     String? // work_suggestion | care_activity | system
+  source_id       String?
+  related_user_id String?
+  metadata_json   Json?
+  read_at         DateTime?
+  acted_at        DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, status, created_at])
+  @@index([source_type, source_id])
+  @@map("user_notifications")
+}
+
+// â”€â”€â”€ Customer Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Lá»‹ch sá»­ tÆ°Æ¡ng tÃ¡c vá»›i khÃ¡ch hÃ ng
+model CustomerTimeline {
+  id          String @id @default(uuid())
+  customer_id String
+
+  // Loáº¡i event
+  // auto:   chat_started | call | status_change | project_created
+  // manual: meeting | contract | construction | handover | warranty | note
+  type String
+
+  title       String // "Báº¯t Ä‘áº§u chat Telegram", "KÃ½ HÄ #089"
+  description String?  @db.Text
+  happened_at DateTime // auto = system time, manual = sales nháº­p
+  created_by  String? // null náº¿u auto event
+
+  // Flexible metadata
+  // chat_started: { channel, conversation_id }
+  // contract:     { contract_no, value, notes }
+  // meeting:      { location, notes }
+  metadata Json?
+
+  created_at DateTime @default(now())
+
+  customer Customer @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  creator  User?    @relation("TimelineCreator", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([customer_id, happened_at])
+  @@map("customer_timelines")
+}
+
+// Lich su cham soc khach hang (chi tiet theo tung hanh dong)
+model CustomerCareActivity {
+  id                   String    @id @default(uuid())
+  customer_id          String
+  activity_type        String // call | chat | meeting | estimate_sent | followup | note | next_action_update
+  summary              String
+  detail               String?   @db.Text
+  next_action_snapshot String?   @db.Text
+  source_ref_type      String? // contact_log | conversation | estimate_dispatch | manual | system
+  source_ref_id        String?
+  channel              String? // call | telegram | zalo | messenger | email | other
+  pipeline_phase       String? // general | construction_pre_sale | construction_execution | construction_aftercare
+  happened_at          DateTime  @default(now())
+  due_at               DateTime?
+  created_by           String?
+  care_owner_id        String?
+  status               String    @default("open") // open | done | cancelled | overdue
+  priority             String    @default("normal") // low | normal | high | urgent
+  completed_at         DateTime?
+  completed_by         String?
+  outcome              String?   @db.Text
+  metadata_json        Json?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  customer         Customer         @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  creator          User?            @relation("CareActivityCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  owner            User?            @relation("CareActivityOwner", fields: [care_owner_id], references: [id], onDelete: SetNull)
+  completer        User?            @relation("CareActivityCompleter", fields: [completed_by], references: [id], onDelete: SetNull)
+  work_suggestions WorkSuggestion[]
+
+  @@index([customer_id, happened_at])
+  @@index([customer_id, status, due_at])
+  @@index([care_owner_id, status, due_at])
+  @@index([activity_type, happened_at])
+  @@index([source_ref_type, source_ref_id])
+  @@index([pipeline_phase, status, due_at])
+  @@map("customer_care_activities")
+}
+
+// Lich su gui khai toan/du toan cho khach
+model CustomerEstimateDispatch {
+  id                  String    @id @default(uuid())
+  customer_id         String
+  estimation_quote_id String?
+  estimate_type       String // quick_estimate | preliminary_estimate
+  channel             String // zalo | telegram | messenger | email | other
+  sent_at             DateTime  @default(now())
+  sent_by             String?
+  delivery_status     String    @default("sent") // sent | delivered | failed | opened | confirmed
+  opened_at           DateTime?
+  confirmed_at        DateTime?
+  message_text        String?   @db.Text
+  attachment_url      String?
+  snapshot_json       Json?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  customer Customer         @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  estimate EstimationQuote? @relation(fields: [estimation_quote_id], references: [id], onDelete: SetNull)
+  sender   User?            @relation("EstimateDispatchSender", fields: [sent_by], references: [id], onDelete: SetNull)
+
+  @@index([customer_id, sent_at])
+  @@index([estimation_quote_id, sent_at])
+  @@index([channel, sent_at])
+  @@map("customer_estimate_dispatches")
+}
+
+// â”€â”€â”€ Webhook Request Log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// LÆ°u táº¥t cáº£ request vÃ o/ra Ä‘á»ƒ debug
+model WebhookLog {
+  id          String   @id @default(uuid())
+  channel     String // telegram | zalo | messenger
+  direction   String // in | out
+  event_type  String? // message | callback_query | oa_send_text ...
+  chat_id     String? // external_conv_id
+  content     String?  @db.Text // tÃ³m táº¯t ná»™i dung
+  raw         Json? // full payload (chá»‰ giá»¯ 7 ngÃ y)
+  status      String   @default("ok") // ok | error | rejected | dedup
+  error       String?
+  duration_ms Int?
+  created_at  DateTime @default(now())
+
+  @@index([channel, created_at])
+  @@index([chat_id])
+  @@map("webhook_logs")
+}
+
+// â€”â€” Analysis Profiles â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+// Äá»‹nh nghÄ©a cÃ¡c cháº¿ Ä‘á»™ phÃ¢n tÃ­ch cÃ³ thá»ƒ báº­t/táº¯t/chá»‰nh sá»­a trong há»‡ thá»‘ng.
+model AnalysisProfile {
+  id              String   @id @default(uuid())
+  key             String   @unique // crm_basic | estimate_v1 | ...
+  name            String
+  description     String?  @db.Text
+  is_active       Boolean  @default(true)
+  required_fields String[] @default([])
+  output_schema   Json?
+  prompt_template String?  @db.Text
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  runs AnalysisRun[]
+
+  @@map("analysis_profiles")
+}
+
+// â€”â€” Analysis Runs â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+// Má»—i láº§n phÃ¢n tÃ­ch (chat/audio/text) Ä‘Æ°á»£c lÆ°u thÃ nh 1 run Ä‘á»ƒ truy váº¿t vÃ  má»Ÿ rá»™ng Ä‘a-mode.
+model AnalysisRun {
+  id             String   @id @default(uuid())
+  profile_key    String
+  source_type    String // chat | audio | text | manual
+  status         String   @default("completed") // completed | needs_data | failed
+  input_text     String?  @db.Text
+  summary        String?  @db.Text
+  confidence     Float?
+  missing_fields String[] @default([])
+  result         Json?
+  requested_by   String?
+
+  customer_id     String?
+  conversation_id String?
+  contact_log_id  String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  profile      AnalysisProfile @relation(fields: [profile_key], references: [key], onDelete: Restrict)
+  customer     Customer?       @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  conversation Conversation?   @relation(fields: [conversation_id], references: [id], onDelete: SetNull)
+  contact_log  ContactLog?     @relation(fields: [contact_log_id], references: [id], onDelete: SetNull)
+  facts        AnalysisFact[]
+
+  @@index([customer_id, created_at])
+  @@index([profile_key, created_at])
+  @@index([conversation_id])
+  @@map("analysis_runs")
+}
+
+// â€”â€” Analysis Facts â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+// Fact-level store: trung tÃ¢m Ä‘á»ƒ tÃ¡i sá»­ dá»¥ng cho CRM, khÃ¡i toÃ¡n, hoáº·c cÃ¡c mode phÃ¢n tÃ­ch khÃ¡c.
+model AnalysisFact {
+  id              String   @id @default(uuid())
+  run_id          String
+  customer_id     String?
+  fact_key        String
+  fact_value      Json
+  normalized_text String?
+  unit            String?
+  confidence      Float?
+  source_type     String? // chat | audio | text
+  source_ref_id   String? // message_id | contact_log_id | ...
+  is_confirmed    Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  run      AnalysisRun @relation(fields: [run_id], references: [id], onDelete: Cascade)
+  customer Customer?   @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+
+  @@index([customer_id, fact_key, created_at])
+  @@index([run_id, fact_key])
+  @@map("analysis_facts")
+}
+
+// â€”â€” Estimation Knowledge Base â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+// Nguá»“n tri thá»©c khÃ¡i toÃ¡n: giÃ¡ váº­t tÆ° + recipe tá»· lá»‡ theo loáº¡i nhÃ /phong cÃ¡ch.
+model EstimationMaterialPrice {
+  id             String    @id @default(uuid())
+  material_key   String // cat | gach | xi_mang | thep | ...
+  material_name  String
+  unit           String // kg | m3 | vien | tan | ...
+  price_per_unit BigInt
+  region_code    String? // HCM | HN | ALL | ...
+  source_note    String?   @db.Text
+  valid_from     DateTime  @default(now())
+  valid_to       DateTime?
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  @@index([material_key, region_code, valid_from])
+  @@map("estimation_material_prices")
+}
+
+model EstimationTaxonomy {
+  id          String   @id @default(uuid())
+  kind        String // house_type | style | level
+  value       String // machine key: nha_ong, hien_dai, premium...
+  name        String // tÃƒÂªn hiÃ¡Â»Æ’n thÃ¡Â»â€¹
+  description String?  @db.Text
+  sort_order  Int      @default(0)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@unique([kind, value])
+  @@index([kind, is_active, sort_order])
+  @@map("estimation_taxonomies")
+}
+
+model EstimationCoefficientConfig {
+  id                           String   @id @default("default")
+  floors_threshold             Int      @default(3)
+  floors_coeff_per_extra       Float    @default(0.02)
+  tum_coeff                    Float    @default(0.03)
+  basement_coeff               Float    @default(0.08)
+  elevator_coeff               Float    @default(0.06)
+  finish_co_ban_multiplier     Float    @default(1.0)
+  finish_tieu_chuan_multiplier Float    @default(1.08)
+  finish_cao_cap_multiplier    Float    @default(1.18)
+  created_at                   DateTime @default(now())
+  updated_at                   DateTime @updatedAt
+
+  @@map("estimation_coefficient_configs")
+}
+
+model EstimationRecipe {
+  id          String   @id @default(uuid())
+  recipe_key  String   @unique // nha_co_dien_loai_1 | nha_pho_tieu_chuan | ...
+  recipe_name String
+  house_type  String? // Nha pho | Biet thu | Nha cap 4 | ...
+  style       String? // co_dien | hien_dai | ...
+  level       String? // loai_1 | loai_2 | ...
+  description String?  @db.Text
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  items  EstimationRecipeItem[]
+  quotes EstimationQuote[]
+
+  @@index([house_type, style, level])
+  @@map("estimation_recipes")
+}
+
+model EstimationRecipeItem {
+  id              String   @id @default(uuid())
+  recipe_id       String
+  material_key    String
+  material_name   String?
+  ratio_percent   Float? // VÃ­ dá»¥ cÃ¡t 12% trong nhÃ³m VL chÃ­nh
+  quantity_per_m2 Float? // Hoáº·c Ä‘á»‹nh má»©c theo m2
+  waste_factor    Float? // Há»‡ sá»‘ hao há»¥t (vd 0.03 = 3%)
+  note            String?  @db.Text
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  recipe EstimationRecipe @relation(fields: [recipe_id], references: [id], onDelete: Cascade)
+
+  @@unique([recipe_id, material_key])
+  @@index([recipe_id, sort_order])
+  @@map("estimation_recipe_items")
+}
+
+model EstimationQuote {
+  id               String   @id @default(uuid())
+  customer_id      String?
+  recipe_id        String?
+  recipe_key       String?
+  recipe_name      String?
+  region_code      String?
+  quote_date       DateTime @default(now())
+  floor_area_total Float?
+  floors           Int?
+  tum_count        Int?
+  basement_count   Int?
+  has_elevator     Boolean?
+  finish_level     String?
+  base_cost_per_m2 BigInt?
+  coeff_total      Float?
+  subtotal_cost    BigInt?
+  total_cost       BigInt
+  pricing_mode     String? // regional_price | base_x_coef | mixed
+  status           String   @default("draft") // draft | sent | adjusted | approved_as_correct
+  extra_facts_json Json?
+  input_snapshot   Json?
+  result_snapshot  Json?
+  created_by       String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  customer      Customer?                  @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  recipe        EstimationRecipe?          @relation(fields: [recipe_id], references: [id], onDelete: SetNull)
+  items         EstimationQuoteItem[]
+  dispatches    CustomerEstimateDispatch[]
+  project_links ProjectEstimateLink[]
+
+  @@index([customer_id, created_at])
+  @@index([status, created_at])
+  @@map("estimation_quotes")
+}
+
+model EstimationQuoteItem {
+  id            String   @id @default(uuid())
+  quote_id      String
+  material_key  String
+  material_name String?
+  unit          String?
+  quantity      Float?
+  unit_price    BigInt?
+  ratio_percent Float?
+  cost          BigInt
+  price_source  String? // exact_region | region_fallback | base_ratio
+  note          String?  @db.Text
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  quote EstimationQuote @relation(fields: [quote_id], references: [id], onDelete: Cascade)
+
+  @@index([quote_id])
+  @@map("estimation_quote_items")
+}
+
+// --- Estimate V2: Open knowledge base (catalog/template/rule) ---
+model EstimationCatalogItem {
+  id          String   @id @default(uuid())
+  item_code   String   @unique
+  item_name   String
+  item_type   String // material | labor | equipment | fixture | service
+  item_group  String // ket_cau | xay_to | hoan_thien | mep_dien | mep_nuoc | noi_that | khac
+  item_unit   String
+  specs       Json?
+  description String?  @db.Text
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  template_items                  EstimationTemplateItem[]
+  supplier_prices                 SupplierMaterialPrice[]
+  warehouse_stocks                WarehouseStock[]
+  inventory_items                 InventoryTransactionItem[]
+  inventory_price_logs            InventoryMaterialPriceLog[]
+  inventory_stock_audit_items     InventoryStockAuditItem[]
+  purchase_request_items          InventoryPurchaseRequestItem[]
+  purchase_order_items            InventoryPurchaseOrderItem[]
+  project_direct_purchase_items   ProjectDirectPurchaseItem[]
+  project_material_ledger_entries ProjectMaterialLedger[]
+
+  @@index([item_type, item_group, is_active])
+  @@map("estimation_catalog_items")
+}
+
+// Nha cung cap vat tu/dich vu dung chung cho du toan + kho
+model Supplier {
+  id            String   @id @default(uuid())
+  supplier_code String   @unique
+  supplier_name String
+  contact_name  String?
+  phone         String? // deprecated: se move sang SupplierProfile.primary_phone
+  email         String?
+  address       String?
+  region_code   String?
+  note          String?  @db.Text
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  prices                          SupplierMaterialPrice[]
+  inventory_price_logs            InventoryMaterialPriceLog[]
+  txns                            InventoryTransaction[]
+  stocks                          WarehouseStock[]
+  purchase_requests               InventoryPurchaseRequest[]
+  purchase_orders                 InventoryPurchaseOrder[]
+  project_direct_purchases        ProjectDirectPurchase[]
+  project_material_ledger_entries ProjectMaterialLedger[]
+  subcontracted_resource_plans    ProjectResourcePlan[]      @relation("ProjectPlanSubcontractor")
+  subcontracted_site_issues       ProjectSiteIssue[]         @relation("ProjectSiteIssueSubcontractor")
+  profile                         SupplierProfile?
+
+  @@index([is_active, supplier_name])
+  @@index([region_code, is_active])
+  @@map("suppliers")
+}
+
+// Ho so nghiep vu mo rong cua nha cung cap (1-1)
+model SupplierProfile {
+  id                  String    @id @default(uuid())
+  supplier_id         String    @unique
+  supplier_type       String? // company | store | individual | distributor | factory | contractor | service
+  legal_name          String?
+  tax_code            String?
+  business_license_no String?
+  primary_phone       String?
+  secondary_phone     String?
+  zalo_phone          String?
+  contact_email       String?
+  payment_terms_days  Int?      @default(0)
+  credit_limit        BigInt? // han muc cong no
+  current_debt        BigInt?   @default(0)
+  debt_updated_at     DateTime?
+  note                String?   @db.Text
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  supplier Supplier @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
+
+  @@index([supplier_type])
+  @@index([primary_phone])
+  @@map("supplier_profiles")
+}
+
+// Bang gia theo nha cung cap (co hieu luc theo thoi gian)
+model SupplierMaterialPrice {
+  id              String    @id @default(uuid())
+  supplier_id     String
+  catalog_item_id String?
+  material_key    String
+  material_name   String?
+  unit            String?
+  region_code     String?
+  price_per_unit  BigInt
+  currency        String    @default("VND")
+  min_order_qty   Float?
+  source_note     String?   @db.Text
+  valid_from      DateTime  @default(now())
+  valid_to        DateTime?
+  is_active       Boolean   @default(true)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  supplier     Supplier               @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
+  catalog_item EstimationCatalogItem? @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+
+  @@index([material_key, region_code, valid_from])
+  @@index([supplier_id, material_key, valid_from])
+  @@index([catalog_item_id, valid_from])
+  @@map("supplier_material_prices")
+}
+
+// Kho vat tu
+model Warehouse {
+  id             String   @id @default(uuid())
+  warehouse_code String   @unique
+  warehouse_name String
+  region_code    String?
+  address        String?
+  manager_name   String?
+  manager_phone  String?
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  stocks WarehouseStock[]
+  txns   InventoryTransaction[]
+  stock_audits InventoryStockAudit[]
+  purchase_requests InventoryPurchaseRequest[]
+  purchase_orders InventoryPurchaseOrder[]
+  inventory_price_logs InventoryMaterialPriceLog[]
+  inventory_cost_cycles InventoryCostCycle[]
+
+  @@index([is_active, warehouse_name])
+  @@index([region_code, is_active])
+  @@map("warehouses")
+}
+
+// Ton kho hien tai theo tung item trong moi kho
+model WarehouseStock {
+  id              String    @id @default(uuid())
+  warehouse_id    String
+  catalog_item_id String?
+  material_key    String
+  material_name   String?
+  item_unit       String?
+  supplier_id     String?
+  on_hand_qty     Float     @default(0)
+  reserved_qty    Float     @default(0)
+  avg_unit_cost   BigInt? // gia von binh quan hien tai
+  stock_value     BigInt? // gia tri ton kho = on_hand * avg (VND)
+  min_qty         Float?
+  max_qty         Float?
+  last_in_at      DateTime?
+  last_out_at     DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  warehouse    Warehouse              @relation(fields: [warehouse_id], references: [id], onDelete: Cascade)
+  catalog_item EstimationCatalogItem? @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+  supplier     Supplier?              @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  cost_cycles  InventoryCostCycle[]
+  stock_audit_items InventoryStockAuditItem[]
+
+  @@unique([warehouse_id, material_key])
+  @@index([warehouse_id, on_hand_qty])
+  @@index([supplier_id, warehouse_id])
+  @@map("warehouse_stocks")
+}
+
+// Phieu xuat/nhap/dieu chinh kho
+model InventoryTransaction {
+  id             String   @id @default(uuid())
+  txn_code       String   @unique
+  warehouse_id   String
+  txn_type       String // in | out | adjust | transfer_in | transfer_out
+  issue_purpose  String? // project_supply | crew_supply | maintenance_supply | loss_damage | internal_use | other
+  txn_date       DateTime @default(now())
+  supplier_id    String?
+  reference_type String? // estimate_quote | purchase_order | manual | transfer | stock_audit
+  reference_id   String?
+  status         String   @default("posted") // draft | posted | canceled
+  note           String?  @db.Text
+  created_by     String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  warehouse Warehouse                  @relation(fields: [warehouse_id], references: [id], onDelete: Restrict)
+  supplier  Supplier?                  @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  items     InventoryTransactionItem[]
+  applied_stock_audits InventoryStockAudit[] @relation("InventoryStockAuditAppliedTxn")
+  price_logs InventoryMaterialPriceLog[]
+
+  @@index([warehouse_id, txn_date])
+  @@index([supplier_id, txn_date])
+  @@index([reference_type, reference_id])
+  @@map("inventory_transactions")
+}
+
+model InventoryTransactionItem {
+  id              String   @id @default(uuid())
+  txn_id          String
+  catalog_item_id String?
+  material_key    String
+  material_name   String?
+  item_unit       String?
+  quantity        Float
+  unit_price      BigInt?
+  line_total      BigInt?
+  note            String?  @db.Text
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  txn          InventoryTransaction   @relation(fields: [txn_id], references: [id], onDelete: Cascade)
+  catalog_item EstimationCatalogItem? @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+  price_logs    InventoryMaterialPriceLog[]
+
+  @@index([txn_id])
+  @@index([material_key])
+  @@map("inventory_transaction_items")
+}
+
+model InventoryPurchaseRequest {
+  id               String   @id @default(uuid())
+  request_code     String   @unique
+  warehouse_id     String
+  supplier_id      String?
+  request_date     DateTime @default(now())
+  needed_date      DateTime?
+  status           String   @default("draft") // draft | submitted | approved | rejected | cancelled | ordered
+  note             String?  @db.Text
+  created_by       String?
+  approved_by      String?
+  approved_at      DateTime?
+  rejected_by      String?
+  rejected_at      DateTime?
+  cancelled_by     String?
+  cancelled_at     DateTime?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  warehouse       Warehouse                 @relation(fields: [warehouse_id], references: [id], onDelete: Restrict)
+  supplier        Supplier?                 @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  items           InventoryPurchaseRequestItem[]
+  purchase_orders InventoryPurchaseOrder[]
+
+  @@index([warehouse_id, request_date])
+  @@index([supplier_id, request_date])
+  @@index([status, request_date])
+  @@map("inventory_purchase_requests")
+}
+
+model InventoryPurchaseRequestItem {
+  id                   String   @id @default(uuid())
+  request_id           String
+  catalog_item_id      String?
+  material_key         String
+  material_name        String?
+  item_unit            String?
+  quantity             Float
+  suggested_unit_price BigInt?
+  note                 String?  @db.Text
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  request      InventoryPurchaseRequest @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  catalog_item EstimationCatalogItem?   @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+  order_items   InventoryPurchaseOrderItem[]
+
+  @@index([request_id])
+  @@index([material_key])
+  @@map("inventory_purchase_request_items")
+}
+
+model InventoryPurchaseOrder {
+  id             String   @id @default(uuid())
+  order_code     String   @unique
+  request_id     String?
+  warehouse_id   String
+  supplier_id    String
+  order_date     DateTime @default(now())
+  expected_date  DateTime?
+  status         String   @default("draft") // draft | confirmed | partial_received | completed | cancelled
+  note           String?  @db.Text
+  created_by     String?
+  confirmed_by   String?
+  confirmed_at   DateTime?
+  cancelled_by   String?
+  cancelled_at   DateTime?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  request   InventoryPurchaseRequest? @relation(fields: [request_id], references: [id], onDelete: SetNull)
+  warehouse Warehouse                 @relation(fields: [warehouse_id], references: [id], onDelete: Restrict)
+  supplier  Supplier                  @relation(fields: [supplier_id], references: [id], onDelete: Restrict)
+  items     InventoryPurchaseOrderItem[]
+
+  @@index([request_id, order_date])
+  @@index([warehouse_id, order_date])
+  @@index([supplier_id, order_date])
+  @@index([status, order_date])
+  @@map("inventory_purchase_orders")
+}
+
+model InventoryPurchaseOrderItem {
+  id                String   @id @default(uuid())
+  order_id          String
+  request_item_id   String?
+  catalog_item_id   String?
+  material_key      String
+  material_name     String?
+  item_unit         String?
+  ordered_qty       Float
+  received_qty      Float    @default(0)
+  draft_receipt_qty Float    @default(0)
+  unit_price        BigInt?
+  note              String?  @db.Text
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  order        InventoryPurchaseOrder       @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  request_item InventoryPurchaseRequestItem? @relation(fields: [request_item_id], references: [id], onDelete: SetNull)
+  catalog_item EstimationCatalogItem?       @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+
+  @@index([order_id])
+  @@index([material_key])
+  @@map("inventory_purchase_order_items")
+}
+
+model InventoryStockAudit {
+  id                String   @id @default(uuid())
+  audit_code        String   @unique
+  warehouse_id      String
+  audit_date        DateTime @default(now())
+  status            String   @default("draft") // draft | counted | applied | cancelled
+  note              String?  @db.Text
+  total_items       Int      @default(0)
+  counted_items     Int      @default(0)
+  variance_items    Int      @default(0)
+  total_variance_value BigInt? @default(0)
+  applied_txn_id    String?
+  created_by        String?
+  counted_by        String?
+  counted_at        DateTime?
+  applied_by        String?
+  applied_at        DateTime?
+  cancelled_by      String?
+  cancelled_at      DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouse_id], references: [id], onDelete: Restrict)
+  applied_txn InventoryTransaction? @relation("InventoryStockAuditAppliedTxn", fields: [applied_txn_id], references: [id], onDelete: SetNull)
+  items     InventoryStockAuditItem[]
+
+  @@index([warehouse_id, audit_date])
+  @@index([status, audit_date])
+  @@map("inventory_stock_audits")
+}
+
+model InventoryStockAuditItem {
+  id                String   @id @default(uuid())
+  audit_id          String
+  stock_id          String?
+  catalog_item_id   String?
+  material_key      String
+  material_name     String?
+  item_unit         String?
+  book_qty          Float    @default(0)
+  counted_qty       Float?
+  variance_qty      Float?
+  avg_unit_cost     BigInt?
+  variance_value    BigInt?
+  note              String?  @db.Text
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  audit       InventoryStockAudit    @relation(fields: [audit_id], references: [id], onDelete: Cascade)
+  stock       WarehouseStock?        @relation(fields: [stock_id], references: [id], onDelete: SetNull)
+  catalog_item EstimationCatalogItem? @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+
+  @@index([audit_id])
+  @@index([stock_id])
+  @@index([material_key])
+  @@map("inventory_stock_audit_items")
+}
+
+// Lich su gia thuc te cua vat tu theo phat sinh mua/nhap
+model InventoryMaterialPriceLog {
+  id              String   @id @default(uuid())
+  warehouse_id    String?
+  supplier_id     String?
+  txn_id          String?
+  txn_item_id     String?
+  catalog_item_id String?
+  material_key    String
+  material_name   String?
+  item_unit       String?
+  price_kind      String   @default("inventory_in") // supplier_quote | inventory_in | transfer_in | direct_purchase | manual
+  unit_price      BigInt
+  quantity        Float?
+  line_total      BigInt?
+  cycle_no        Int?
+  effective_at    DateTime @default(now())
+  source_note     String?  @db.Text
+  created_by      String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  warehouse    Warehouse?              @relation(fields: [warehouse_id], references: [id], onDelete: SetNull)
+  supplier     Supplier?               @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  txn          InventoryTransaction?   @relation(fields: [txn_id], references: [id], onDelete: SetNull)
+  txn_item     InventoryTransactionItem? @relation(fields: [txn_item_id], references: [id], onDelete: SetNull)
+  catalog_item EstimationCatalogItem?  @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+
+  @@index([material_key, effective_at])
+  @@index([supplier_id, material_key, effective_at])
+  @@index([warehouse_id, material_key, effective_at])
+  @@index([txn_id])
+  @@map("inventory_material_price_logs")
+}
+
+// Vong gia ton cua tung vat tu trong tung kho
+model InventoryCostCycle {
+  id                 String    @id @default(uuid())
+  warehouse_id       String
+  stock_id           String?
+  material_key       String
+  cycle_no           Int
+  started_at         DateTime  @default(now())
+  ended_at           DateTime?
+  opening_qty        Float     @default(0)
+  opening_value      BigInt?   @default(0)
+  opening_avg_cost   BigInt?   @default(0)
+  closing_qty        Float?
+  closing_value      BigInt?
+  closing_avg_cost   BigInt?
+  last_in_at         DateTime?
+  last_out_at        DateTime?
+  last_price_log_id  String?
+  reset_reason       String?   // clear_stock | manual_reset | inventory_adjust | negative_to_zero
+  source_txn_id      String?
+  source_note        String?   @db.Text
+  is_open            Boolean   @default(true)
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  warehouse Warehouse      @relation(fields: [warehouse_id], references: [id], onDelete: Cascade)
+  stock     WarehouseStock? @relation(fields: [stock_id], references: [id], onDelete: SetNull)
+
+  @@unique([warehouse_id, material_key, cycle_no])
+  @@index([warehouse_id, material_key, is_open])
+  @@index([material_key, started_at])
+  @@map("inventory_cost_cycles")
+}
+
+model PrintBrandConfig {
+  id               String   @id
+  brand_name       String
+  legal_name       String
+  tagline          String?
+  logo_url         String?
+  accent_color     String?  @default("#ea580c")
+  accent_soft      String?  @default("#fff7ed")
+  border_color     String?  @default("#cbd5e1")
+  address          String?  @db.Text
+  phone            String?
+  email            String?
+  tax_code         String?
+  footer_text      String?  @db.Text
+  updated_by       String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@map("print_brand_configs")
+}
+
+model SalesBriefHeatConfig {
+  id            String   @id @default(uuid())
+  config_key    String   @unique
+  config_name   String
+  group_name    String
+  value_type    String   @default("number") // number | percent
+  config_value  String
+  description   String?  @db.Text
+  sort_order    Int      @default(0)
+  is_active     Boolean  @default(true)
+  is_locked     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([group_name, sort_order])
+  @@index([is_active, sort_order])
+  @@map("sales_brief_heat_configs")
+}
+
+model ProjectDirectPurchase {
+  id            String    @id @default(uuid())
+  project_id    String
+  plan_id       String?
+  purchase_code String    @unique
+  purchase_date DateTime  @default(now())
+  supplier_id   String?
+  supplier_name String?
+  status        String    @default("draft") // draft | confirmed | cancelled
+  note          String?   @db.Text
+  created_by    String?
+  confirmed_by  String?
+  confirmed_at  DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  project   ConstructionProject         @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  plan      ProjectResourcePlan?        @relation(fields: [plan_id], references: [id], onDelete: SetNull)
+  supplier  Supplier?                   @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  creator   User?                       @relation("ProjectDirectPurchaseCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  confirmer User?                       @relation("ProjectDirectPurchaseConfirmer", fields: [confirmed_by], references: [id], onDelete: SetNull)
+  items     ProjectDirectPurchaseItem[]
+
+  @@index([project_id, purchase_date])
+  @@index([project_id, status, created_at])
+  @@index([project_id, plan_id, status, purchase_date])
+  @@index([supplier_id, purchase_date])
+  @@map("project_direct_purchases")
+}
+
+model ProjectDirectPurchaseItem {
+  id              String   @id @default(uuid())
+  purchase_id     String
+  project_id      String
+  catalog_item_id String?
+  material_key    String
+  material_name   String?
+  item_unit       String?
+  quantity        Float
+  unit_price      BigInt?
+  line_total      BigInt?
+  note            String?  @db.Text
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  purchase     ProjectDirectPurchase  @relation(fields: [purchase_id], references: [id], onDelete: Cascade)
+  project      ConstructionProject    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  catalog_item EstimationCatalogItem? @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+
+  @@index([purchase_id])
+  @@index([project_id, material_key])
+  @@map("project_direct_purchase_items")
+}
+
+model ProjectMaterialLedger {
+  id              String   @id @default(uuid())
+  project_id      String
+  direction       String // in | out | consume | return | adjust
+  source_type     String // inventory_txn | direct_purchase | diary | manual
+  source_id       String?
+  supplier_id     String?
+  catalog_item_id String?
+  material_key    String
+  material_name   String?
+  item_unit       String?
+  quantity        Float
+  unit_price      BigInt?
+  line_total      BigInt?
+  note            String?  @db.Text
+  happened_at     DateTime @default(now())
+  created_by      String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  project      ConstructionProject    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  supplier     Supplier?              @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  catalog_item EstimationCatalogItem? @relation(fields: [catalog_item_id], references: [id], onDelete: SetNull)
+  creator      User?                  @relation("ProjectMaterialLedgerCreator", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([project_id, happened_at])
+  @@index([project_id, material_key, happened_at])
+  @@index([source_type, source_id])
+  @@index([supplier_id, happened_at])
+  @@map("project_material_ledger")
+}
+
+model EstimationTemplateHeader {
+  id             String    @id @default(uuid())
+  template_code  String
+  template_name  String
+  template_type  String // room | wc | house | structure | mep | custom
+  house_type     String?
+  style          String?
+  finish_level   String?
+  room_type      String?
+  priority       Int       @default(0)
+  version        Int       @default(1)
+  is_active      Boolean   @default(true)
+  effective_from DateTime?
+  effective_to   DateTime?
+  description    String?   @db.Text
+  created_by     String?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  items                  EstimationTemplateItem[]
+  assembly_blocks        ProjectAssemblyBlock[]
+  assembly_preset_blocks ProjectAssemblyPresetBlock[]
+
+  @@unique([template_code, version])
+  @@index([template_type, is_active, priority])
+  @@index([house_type, style, finish_level])
+  @@map("estimation_template_headers")
+}
+
+model EstimationTemplateItem {
+  id                 String    @id @default(uuid())
+  template_id        String
+  catalog_item_id    String
+  apply_mode         String // per_area | per_unit | fixed | formula (legacy: per_m2 | per_room)
+  quantity_basis_key String? // floor_area_total | main_floor_area_total | wall_surface_area_total | room_count | ...
+  scope_key          String? // bedroom | wc | kitchen | living_room | cau_thang | mong_coc | ...
+  quantity_value     Float?
+  formula_expr       String?   @db.Text
+  required_facts     Json?
+  formula_version    Int       @default(1)
+  formula_note       String?   @db.Text
+  waste_factor       Float?
+  sort_order         Int       @default(0)
+  is_active          Boolean   @default(true)
+  effective_from     DateTime?
+  effective_to       DateTime?
+  note               String?   @db.Text
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  template     EstimationTemplateHeader @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  catalog_item EstimationCatalogItem    @relation(fields: [catalog_item_id], references: [id], onDelete: Restrict)
+
+  @@unique([template_id, catalog_item_id, sort_order])
+  @@index([template_id, is_active, sort_order])
+  @@index([catalog_item_id])
+  @@map("estimation_template_items")
+}
+
+model EstimationRuleHeader {
+  id             String    @id @default(uuid())
+  rule_code      String
+  rule_name      String
+  scope          String // foundation | structure | room | mep | pricing | custom
+  priority       Int       @default(0)
+  version        Int       @default(1)
+  is_active      Boolean   @default(true)
+  effective_from DateTime?
+  effective_to   DateTime?
+  description    String?   @db.Text
+  created_by     String?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  conditions EstimationRuleCondition[]
+  actions    EstimationRuleAction[]
+
+  @@unique([rule_code, version])
+  @@index([scope, is_active, priority])
+  @@map("estimation_rule_headers")
+}
+
+model EstimationRuleCondition {
+  id           String   @id @default(uuid())
+  rule_id      String
+  fact_key     String // floors | house_type | foundation_type | room_count | ...
+  operator     String // eq | neq | gt | gte | lt | lte | in | between
+  value_text   String?
+  value_number Float?
+  value_json   Json?
+  sort_order   Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  rule EstimationRuleHeader @relation(fields: [rule_id], references: [id], onDelete: Cascade)
+
+  @@index([rule_id, sort_order])
+  @@map("estimation_rule_conditions")
+}
+
+model EstimationRuleAction {
+  id           String   @id @default(uuid())
+  rule_id      String
+  action_type  String // set_field | add_item | multiply_coeff | suggest_value | add_warning
+  target_key   String? // foundation_type | pile_spacing | item_code | coeff_total | ...
+  value_text   String?
+  value_number Float?
+  value_json   Json?
+  formula_expr String?  @db.Text
+  sort_order   Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  rule EstimationRuleHeader @relation(fields: [rule_id], references: [id], onDelete: Cascade)
+
+  @@index([rule_id, sort_order])
+  @@map("estimation_rule_actions")
+}
+
+// Danh muc don vi hanh chinh Viet Nam (seed tu thanglequoc/vietnamese-provinces-database)
+model GeoRegion {
+  id             String   @id @default(uuid())
+  code           String // ma DVHC (vd: 01, 00004, ...)
+  name           String // ten day du (vd: Thanh pho Ha Noi, Phuong Ba Dinh)
+  level          String // province | ward
+  parent_code    String? // ward -> province_code
+  source         String   @default("thanglequoc/vietnamese-provinces-database")
+  source_version String? // master / tag / release ref
+  latitude       Float?
+  longitude      Float?
+  meta_json      Json?
+  is_active      Boolean  @default(true)
+  sort_order     Int      @default(0)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@unique([level, code])
+  @@index([level, is_active, sort_order])
+  @@index([parent_code, level])
+  @@map("geo_regions")
+}

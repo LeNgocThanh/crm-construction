@@ -1,0 +1,174 @@
+'use client'
+// src/app/(dashboard)/kpi/page.tsx
+import { useState, useEffect } from 'react'
+
+interface KPIItem {
+  staff: { id: string; username: string; group_name?: string; role: string }
+  total_calls: number
+  successful_leads: number
+  closed_deals: number
+  conversion_rate: number
+}
+
+export default function KPIPage() {
+  const [data, setData] = useState<KPIItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [month, setMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
+  const [period, setPeriod] = useState<{ start: string; end: string } | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/kpi?month=${month}`)
+      .then((r) => r.json())
+      .then((json) => {
+        setData(json.data || [])
+        setPeriod(json.period)
+        setLoading(false)
+      })
+  }, [month])
+
+  const maxCalls = Math.max(...data.map((d) => d.total_calls), 1)
+
+  return (
+    <div className="fade-up">
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', marginBottom: 24,
+        }}
+      >
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>
+            KPI Nhân viên
+          </h1>
+          {period && (
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+              Từ {period.start} đến {period.end}
+            </div>
+          )}
+        </div>
+        <input
+          type="month"
+          className="input"
+          style={{ maxWidth: 160 }}
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+        />
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+          <span className="spinner" style={{ width: 32, height: 32 }} />
+        </div>
+      ) : data.length === 0 ? (
+        <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>
+          Không có dữ liệu
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {data
+            .sort((a, b) => b.total_calls - a.total_calls)
+            .map((item, i) => (
+              <div
+                key={item.staff.id}
+                className="card"
+                style={{ padding: '18px 22px' }}
+              >
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center',
+                    gap: 16, marginBottom: 14,
+                  }}
+                >
+                  {/* Rank */}
+                  <div
+                    style={{
+                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                      background: i === 0 ? '#EAB30820' : i === 1 ? '#94A3B820' : 'var(--surface2)',
+                      border: `1px solid ${i === 0 ? '#EAB30840' : i === 1 ? '#94A3B840' : 'var(--border)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 14, fontWeight: 700,
+                      color: i === 0 ? '#EAB308' : i === 1 ? '#94A3B8' : 'var(--text3)',
+                    }}
+                  >
+                    #{i + 1}
+                  </div>
+
+                  {/* Name */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>
+                      {item.staff.username}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                      {item.staff.group_name || item.staff.role}
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div
+                    style={{
+                      display: 'flex', gap: 24, alignItems: 'center',
+                    }}
+                  >
+                    {[
+                      { label: 'Cuộc gọi', value: item.total_calls, color: 'var(--blue)' },
+                      { label: 'Tích cực', value: item.successful_leads, color: 'var(--green)' },
+                      { label: 'Tỉ lệ', value: `${item.conversion_rate}%`, color: 'var(--accent)' },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} style={{ textAlign: 'center' }}>
+                        <div
+                          style={{
+                            fontSize: 22, fontWeight: 700, color,
+                            fontFamily: "'JetBrains Mono', monospace",
+                          }}
+                        >
+                          {value}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>
+                          {label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div>
+                  <div
+                    style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      fontSize: 11, color: 'var(--text3)', marginBottom: 5,
+                    }}
+                  >
+                    <span>Số cuộc gọi</span>
+                    <span>{item.total_calls} / {maxCalls}</span>
+                  </div>
+                  <div
+                    style={{
+                      height: 6, background: 'var(--bg)', borderRadius: 3, overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${(item.total_calls / maxCalls) * 100}%`,
+                        background: i === 0
+                          ? 'linear-gradient(90deg, var(--accent), #EAB308)'
+                          : 'var(--blue)',
+                        borderRadius: 3,
+                        transition: 'width 1s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  )
+}
